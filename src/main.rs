@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
 // criando uma janela e administrando a janela
-use winit::event::WindowEvent;
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowId};
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
 
 use vulkano::VulkanLibrary;
 
@@ -11,7 +13,8 @@ use vulkano::VulkanLibrary;
 use vulkano::instance::{Instance, InstanceCreateInfo};
 
 // criando abstração por cima da GPU e escolhendo suas queues https://vulkano.rs/02-initialization/02-device-creation.html
-use vulkano::device::{Device, DeviceCreateInfo, QueueCreateInfo, QueueFlags};
+use vulkano::device::{physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo, QueueFlags};
+use vulkano::Version;
 
 // tipos de buffer https://vulkano.rs/03-buffer-creation/01-buffer-creation.html
 use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
@@ -19,40 +22,69 @@ use vulkano::buffer::{Buffer, BufferCreateInfo, BufferUsage};
 // alocador de memoria (criação de buffer) https://vulkano.rs/03-buffer-creation/01-buffer-creation.html
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
 
+use vulkano::swapchain::Surface;
+
 fn main() {
+    let event_loop = EventLoop::new();
 
-    // event loop da janela (winit)
-    let event_loop = EventLoop::new().expect("failed to create an event_loop");
-
-    // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
-    // dispatched any events. This is ideal for games and similar applications.
-    event_loop.set_control_flow(ControlFlow::Poll);
+    let required_extensions = Surface::required_extensions(&event_loop);
 
     // cria procura se existe vulkan no computador e puxa as bibliotecas necessárias
     let library = VulkanLibrary::new().expect("no local Vulkan library/DLL");
-    let instance = Instance::new(library, InstanceCreateInfo::default()).expect("failed to create instance");
+    let instance = Instance::new(
+        library, 
+        InstanceCreateInfo {
+            enabled_extensions: required_extensions,
+            ..Default::default()
+        },
+    ).expect("failed to create instance");
+
+    // The objective of this example is to draw a triangle on a window. To do so, we first need to
+    // create the window. We use the `WindowBuilder` from the `winit` crate to do that here.
+    //
+    // Before we can render to a window, we must first create a `vulkano::swapchain::Surface`
+    // object from it, which represents the drawable surface of a window. For that we must wrap the
+    // `winit::window::Window` in an `Arc`.
+    let window = Arc::new(WindowBuilder::new().build(&event_loop).unwrap());
+    let surface = Surface::from_window(instance.clone(), window.clone()).unwrap();
+
+    let mut device_extensions = DeviceExtensions {
+        khr_swapchain: true,
+        ..DeviceExtensions::empty()
+    };
 
     // escolhe um dispositivo para rodar (nesse caso o primeiro dispositivo da lista)
     // TODO: seria ideal escolher o dispositivo mais potente ou o padrão do sistema
     let physical_device = instance
         .enumerate_physical_devices()
         .expect("could not enumerate devices")
+        .filter(|p| {
+            p.api_version() >= Version::V1_3 || p.supported_extensions().khr_dynamic_rendering
+        })
+        .filter(|p| {
+            p.supported_extensions().contains(&device_extensions)
+        })
         .next()
         .expect("no devices available");
 
-    println!("{}", physical_device.properties().device_name);
+    println!(
+        "Using device: {} (type: {:?})",
+        physical_device.properties().device_name,
+        physical_device.properties().device_type,
+    );
+
     // cria as queues de processamento no dispositivo escolhido
     // ao mesmo tempo checa se os tipos de queue estão disponíveis
     // 
     // nesse caso so aloca para uma queue de gráficos
     let queue_family_index = physical_device
-    .queue_family_properties()
-    .iter()
-    .enumerate()
-    .position(|(_queue_family_index, queue_family_properties)| {
-        queue_family_properties.queue_flags.contains(QueueFlags::GRAPHICS)
-    })
-    .expect("couldn't find a graphical queue family") as u32;
+        .queue_family_properties()
+        .iter()
+        .enumerate()
+        .position(|(_queue_family_index, queue_family_properties)| {
+            queue_family_properties.queue_flags.contains(QueueFlags::GRAPHICS)
+        })
+        .expect("couldn't find a graphical queue family") as u32;
 
     
     // cria o wrapper de dispositivo virtual para podermos utilizar a placa de vídeo
