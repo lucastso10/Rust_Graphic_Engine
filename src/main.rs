@@ -1,3 +1,5 @@
+mod shaders;
+
 use std::sync::Arc;
 
 use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
@@ -60,36 +62,6 @@ use winit::window::WindowBuilder;
 struct MyVertex {
     #[format(R32G32_SFLOAT)]
     position: [f32; 2],
-}
-
-mod vs {
-    vulkano_shaders::shader! {
-        ty: "vertex",
-        src: r"
-            #version 460
-
-            layout(location = 0) in vec2 position;
-
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        ",
-    }
-}
-
-mod fs {
-    vulkano_shaders::shader! {
-        ty: "fragment",
-        src: r"
-            #version 460
-
-            layout(location = 0) out vec4 f_color;
-
-            void main() {
-                f_color = vec4(1.0, 0.0, 0.0, 1.0);
-            }
-        ",
-    }
 }
 
 pub fn select_physical_device(
@@ -391,8 +363,8 @@ fn main() {
     // carrega os shaders que serão utilizados na renderização
     //
     // shaders
-    let vs = vs::load(device.clone()).expect("failed to create shader module");
-    let fs = fs::load(device.clone()).expect("failed to create shader module");
+    let vs = shaders::vs::load(device.clone()).expect("failed to create shader module");
+    let fs = shaders::fs::load(device.clone()).expect("failed to create shader module");
 
     // A viewport basically describes the region of 
     // the framebuffer that the output will be rendered to. 
