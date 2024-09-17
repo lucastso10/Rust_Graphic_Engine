@@ -1,4 +1,5 @@
 mod shaders;
+mod device;
 
 use std::sync::Arc;
 
@@ -10,7 +11,7 @@ use vulkano::command_buffer::{
 };
 use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
 use vulkano::device::{
-    Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
+    Device, DeviceExtensions, Queue, QueueFlags,
 };
 use vulkano::image::view::ImageView;
 use vulkano::image::{Image, ImageUsage};
@@ -258,31 +259,7 @@ fn main() {
         ..DeviceExtensions::empty()
     };
 
-    // escolhe a GPU que vai utilizar(veja a função select_physical_device)
-    //
-    // physical device
-    let (physical_device, queue_family_index) =
-        select_physical_device(&instance, &surface, &device_extensions);
-
-    // cria o logical device e extrai a queue
-    // 
-    // logical device
-    // queue creation
-    let (device, mut queues) = Device::new(
-        physical_device.clone(),
-        DeviceCreateInfo {
-            queue_create_infos: vec![QueueCreateInfo {
-                queue_family_index,
-                ..Default::default()
-            }],
-            enabled_extensions: device_extensions,
-            ..Default::default()
-        },
-    )
-    .expect("failed to create device");
-
-    // como só temos uma queue pega a primeira do vetor
-    let queue = queues.next().unwrap();
+    let device = device::GPU::new(device_extensions, &instance, &surface);
 
     // ao inves de utilizarmos direto a superficíe para desenhar as imagens,
     // que não é ideal, pois pode causar efeitos estranhos já que renderizamos
@@ -291,19 +268,19 @@ fn main() {
     //
     // swapchain
     let (mut swapchain, images) = {
-        let caps = physical_device
+        let caps = device.physical_device
             .surface_capabilities(&surface, Default::default())
             .expect("failed to get surface capabilities");
 
         let dimensions = window.inner_size();
         let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
-        let image_format = physical_device
+        let image_format = device.physical_device
             .surface_formats(&surface, Default::default())
             .unwrap()[0]
             .0;
 
         Swapchain::new(
-            device.clone(),
+            device.logical_device.clone(),
             surface,
             SwapchainCreateInfo {
                 min_image_count: caps.min_image_count,
@@ -399,7 +376,7 @@ fn main() {
 
     let mut command_buffers = get_command_buffers(
         &command_buffer_allocator,
-        &queue,
+        &device.graphics_queue,
         &pipeline,
         &framebuffers,
         &vertex_buffer,
@@ -464,7 +441,7 @@ fn main() {
                     );
                     command_buffers = get_command_buffers(
                         &command_buffer_allocator,
-                        &queue,
+                        &device.graphics_queue,
                         &new_pipeline,
                         &new_framebuffers,
                         &vertex_buffer,
@@ -510,10 +487,10 @@ fn main() {
 
             let future = previous_future
                 .join(acquire_future)
-                .then_execute(queue.clone(), command_buffers[image_i as usize].clone())
+                .then_execute(device.graphics_queue.clone(), command_buffers[image_i as usize].clone())
                 .unwrap()
                 .then_swapchain_present(
-                    queue.clone(),
+                    device.graphics_queue.clone(),
                     SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_i),
                 )
                 .then_signal_fence_and_flush();
