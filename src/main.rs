@@ -1,5 +1,6 @@
 mod shaders;
 mod device;
+mod renderer;
 
 use std::sync::Arc;
 
@@ -12,8 +13,6 @@ use vulkano::command_buffer::{
 use vulkano::device::{
     Device, DeviceExtensions, Queue,
 };
-use vulkano::image::view::ImageView;
-use vulkano::image::{Image, ImageUsage};
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
 use vulkano::pipeline::graphics::color_blend::{ColorBlendAttachmentState, ColorBlendState};
@@ -25,9 +24,9 @@ use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
 use vulkano::pipeline::layout::PipelineDescriptorSetLayoutCreateInfo;
 use vulkano::pipeline::{GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo};
-use vulkano::render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass, Subpass};
+use vulkano::render_pass::{Framebuffer, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
-use vulkano::swapchain::{self, Surface, Swapchain, SwapchainCreateInfo, SwapchainPresentInfo};
+use vulkano::swapchain::{self, Surface, SwapchainPresentInfo};
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::{self, GpuFuture};
 use vulkano::{Validated, VulkanError};
@@ -43,13 +42,9 @@ use winit::window::WindowBuilder;
 
     // GPU { physical device, logical device, queue creation }
 
-    // swapchain
-
-    // render pass
-    // framebuffers
+    // Renderer { swapchain, RenderPass, Framebuffers, viewport }
     // vertex buffer
     // shaders
-    // viewport
     // pipeline
     // command buffers
 
@@ -98,51 +93,12 @@ fn main() {
         &surface
     );
 
-    // ao inves de utilizarmos direto a superficíe para desenhar as imagens,
-    // que não é ideal, pois pode causar efeitos estranhos já que renderizamos
-    // a imagem em tempo real, utilizamos um swapchain que garante que a imagen
-    // exibida foi renderizada.
-    //
-    // swapchain
-    let (swapchain, images) = {
-        let caps = device.physical_device
-            .surface_capabilities(&surface, Default::default())
-            .expect("failed to get surface capabilities");
-
-        let dimensions = window.inner_size();
-        let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
-        let image_format = device.physical_device
-            .surface_formats(&surface, Default::default())
-            .unwrap()[0]
-            .0;
-
-        Swapchain::new(
-            device.logical_device.clone(),
-            surface,
-            SwapchainCreateInfo {
-                min_image_count: caps.min_image_count,
-                image_format,
-                image_extent: dimensions.into(),
-                image_usage: ImageUsage::COLOR_ATTACHMENT,
-                composite_alpha,
-                ..Default::default()
-            },
-        )
-        .unwrap()
-    };
-
-    // cria o caminho para o vulkan saber onde que os precisa mostrar
-    // as imagens, especificando cores e saturação (veja a função
-    // get_render_pass)
-    //
-    // render pass
-    let render_pass = get_render_pass(device.clone(), swapchain.clone());
-
-    // Cria o buffer onde as imagens serão renderizadas antes de serem
-    // exibidas na tela
-    //
-    // framebuffers
-    let framebuffers = get_framebuffers(&images, render_pass.clone());
+    // Renderer { swapchain, RenderPass, Framebuffers, viewport }
+    let renderer = renderer::Renderer::new(
+        &device, 
+        surface.clone(), 
+        window.inner_size(),
+    );
 
     let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
@@ -184,17 +140,6 @@ fn main() {
     let vs = shaders::vs::load(device.clone()).expect("failed to create shader module");
     let fs = shaders::fs::load(device.clone()).expect("failed to create shader module");
 
-    // A viewport basically describes the region of 
-    // the framebuffer that the output will be rendered to. 
-    // This will almost always be (0, 0) to (width, height)
-    //
-    // viewport
-    let viewport = Viewport {
-        offset: [0.0, 0.0],
-        extent: window.inner_size().into(),
-        depth_range: 0.0..=1.0,
-    };
-
     // declara a pipeline final do programa
     //
     // pipeline
@@ -202,8 +147,8 @@ fn main() {
         device.clone(),
         vs.clone(),
         fs.clone(),
-        render_pass.clone(),
-        viewport.clone(),
+        renderer.render_pass.clone(),
+        renderer.viewport.clone(),
     );
 
     // command buffers são buffers de comandos que serão executados
@@ -219,7 +164,7 @@ fn main() {
         &command_buffer_allocator,
         &device.graphics_queue,
         &pipeline,
-        &framebuffers,
+        &renderer.framebuffers,
         &vertex_buffer,
     );
 
@@ -227,7 +172,7 @@ fn main() {
     //
     // event loop
 
-    let frames_in_flight = images.len();
+    let frames_in_flight = usize::try_from(renderer.swapchain.image_count()).unwrap();
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
@@ -241,7 +186,7 @@ fn main() {
         Event::MainEventsCleared => {
             // aqui começamos a renderizar a próxima imagem
             let (image_i, _suboptimal, acquire_future) =
-                match swapchain::acquire_next_image(swapchain.clone(), None)
+                match swapchain::acquire_next_image(renderer.swapchain.clone(), None)
                     .map_err(Validated::unwrap)
                 {
                     Ok(r) => r,
@@ -275,7 +220,7 @@ fn main() {
                 .unwrap()
                 .then_swapchain_present(
                     device.graphics_queue.clone(),
-                    SwapchainPresentInfo::swapchain_image_index(swapchain.clone(), image_i),
+                    SwapchainPresentInfo::swapchain_image_index(renderer.swapchain.clone(), image_i),
                 )
                 .then_signal_fence_and_flush();
 
@@ -294,42 +239,6 @@ fn main() {
         }
         _ => (),
     });
-}
-
-fn get_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
-    vulkano::single_pass_renderpass!(
-        device,
-        attachments: {
-            color: {
-                format: swapchain.image_format(), // set the format the same as the swapchain
-                samples: 1,
-                load_op: Clear,
-                store_op: Store,
-            },
-        },
-        pass: {
-            color: [color],
-            depth_stencil: {},
-        },
-    )
-    .unwrap()
-}
-
-fn get_framebuffers(images: &[Arc<Image>], render_pass: Arc<RenderPass>) -> Vec<Arc<Framebuffer>> {
-    images
-        .iter()
-        .map(|image| {
-            let view = ImageView::new_default(image.clone()).unwrap();
-            Framebuffer::new(
-                render_pass.clone(),
-                FramebufferCreateInfo {
-                    attachments: vec![view],
-                    ..Default::default()
-                },
-            )
-            .unwrap()
-        })
-        .collect::<Vec<_>>()
 }
 
 fn get_pipeline(
