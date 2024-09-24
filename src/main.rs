@@ -53,8 +53,8 @@ use winit::window::WindowBuilder;
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
 struct MyVertex {
-    #[format(R32G32B32_SFLOAT)]
-    position: [f32; 3],
+    #[format(R32G32_SFLOAT)]
+    position: [f32; 2],
     #[name("inColor")]
     #[format(R32G32B32_SFLOAT)]
     color: [f32; 3],
@@ -106,28 +106,16 @@ fn main() {
     let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
     let vertex1 = MyVertex {
-        position: [0.5, 0.5, 0.0],
+        position: [0.0, -0.5],
         color: [1.0, 0.0, 0.0],
     };
     let vertex2 = MyVertex {
-        position: [-0.5, -0.5, 0.0],
-        color: [1.0, 0.0, 0.0],
+        position: [0.5, 0.5],
+        color: [0.0, 1.0, 0.0],
     };
     let vertex3 = MyVertex {
-        position: [-0.5, 0.5, 0.0],
-        color: [1.0, 0.0, 0.0],
-    };
-    let vertex4 = MyVertex {
-        position: [0.5, -0.5, 0.0],
-        color: [1.0, 0.0, 0.0],
-    };
-    let vertex5 = MyVertex {
-        position: [0.5, 0.5, 0.0],
-        color: [1.0, 0.0, 0.0],
-    };
-    let vertex6 = MyVertex {
-        position: [-0.5, -0.5, 0.0],
-        color: [1.0, 0.0, 0.0],
+        position: [-0.5, 0.5],
+        color: [0.0, 0.0, 1.0],
     };
 
 
@@ -145,7 +133,7 @@ fn main() {
                 | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
             ..Default::default()
         },
-        vec![vertex1, vertex2, vertex3, vertex4, vertex5, vertex6],
+        vec![vertex1, vertex2, vertex3],
     )
     .unwrap();
 
@@ -329,7 +317,7 @@ fn get_command_buffers(
             builder
                 .begin_render_pass(
                     RenderPassBeginInfo {
-                        clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
+                        clear_values: vec![Some([0.0, 0.0, 0.0, 1.0].into())],
                         ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
                     },
                     SubpassBeginInfo {
