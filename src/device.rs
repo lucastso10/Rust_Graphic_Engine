@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
-use vulkano::instance::Instance;
-use vulkano::swapchain::Surface;
-use vulkano::device::physical::{PhysicalDevice, PhysicalDeviceType};
-use vulkano::device::{
-    Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
+use vulkano::{
+    instance::Instance,
+    swapchain::Surface,
+    device::physical::{PhysicalDevice, PhysicalDeviceType},
+    device::{
+        Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
+    },
 };
 
 pub struct GPU {
