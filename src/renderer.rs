@@ -18,6 +18,7 @@ pub struct Renderer {
     pub render_pass: Arc<RenderPass>,
     pub framebuffers: Vec<Arc<Framebuffer>>,
     pub viewport: Viewport,
+    pub images: Vec<Arc<Image>>,
 }
 
 impl Renderer {
@@ -58,9 +59,10 @@ impl Renderer {
         let framebuffers = Self::create_framebuffers(&images, render_pass.clone());
 
         Self {
-            swapchain: swapchain,
-            render_pass: render_pass,
-            framebuffers: framebuffers,
+            swapchain,
+            render_pass,
+            framebuffers,
+            images,
             // A viewport basically describes the region of 
             // the framebuffer that the output will be rendered to. 
             // This will almost always be (0, 0) to (width, height)
