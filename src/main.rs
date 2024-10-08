@@ -1,21 +1,13 @@
 mod shaders;
 mod device;
 mod renderer;
+mod prerender;
 
 use std::sync::Arc;
 
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
-use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
-use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo,
-    SubpassBeginInfo, SubpassContents,
-};
+use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
 use vulkano::device::{
-    Device, DeviceExtensions, Queue,
-};
-use vulkano::pipeline::PipelineBindPoint;
-use vulkano::descriptor_set::{ 
-    allocator::StandardDescriptorSetAllocator, PersistentDescriptorSet, WriteDescriptorSet
+    Device, DeviceExtensions,
 };
 use vulkano::instance::{Instance, InstanceCreateInfo};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
@@ -27,15 +19,13 @@ use vulkano::pipeline::graphics::vertex_input::{Vertex, VertexDefinition};
 use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
 use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
 use vulkano::pipeline::layout::PipelineDescriptorSetLayoutCreateInfo;
-use vulkano::pipeline::{Pipeline, GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo};
-use vulkano::render_pass::{Framebuffer, RenderPass, Subpass};
+use vulkano::pipeline::{GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo};
+use vulkano::render_pass::{self, RenderPass, Subpass};
 use vulkano::shader::ShaderModule;
 use vulkano::swapchain::{self, Surface, SwapchainPresentInfo};
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::{self, GpuFuture};
 use vulkano::{Validated, VulkanError};
-use vulkano::image::{ImageUsage, ImageAspects, ImageSubresourceRange, view::ImageViewCreateInfo, view::ImageView};
-use vulkano::format::Format;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
@@ -47,17 +37,16 @@ use winit::window::WindowBuilder;
 
     // GPU { physical device, logical device, queue creation }
 
-    // Renderer { swapchain, RenderPass, Framebuffers, viewport }
+    // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     // vertex buffer
     // shaders
     // pipeline
-    // command buffers
 
     // event loop
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
-struct MyVertex {
+pub struct MyVertex {
     #[format(R32G32_SFLOAT)]
     position: [f32; 2],
     #[name("inColor")]
@@ -101,14 +90,12 @@ fn main() {
         &surface
     );
 
-    // Renderer { swapchain, RenderPass, Framebuffers, viewport }
+    // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     let renderer = renderer::Renderer::new(
         &device, 
         surface.clone(), 
         window.inner_size(),
     );
-
-    let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
     let vertex1 = MyVertex {
         position: [0.0, -0.5],
@@ -123,80 +110,16 @@ fn main() {
         color: [0.0, 0.0, 1.0],
     };
 
-
-    // cria os vertex que serão exibidos na tela
-    //
-    // vertex buffer
-    let vertex_buffer = Buffer::from_iter(
-        memory_allocator.clone(),
-        BufferCreateInfo {
-            usage: BufferUsage::VERTEX_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-                | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-            ..Default::default()
-        },
+    let prerender = prerender::PreRenderer::new(
+        &device, 
         vec![vertex1, vertex2, vertex3],
-    )
-    .unwrap();
-
-    // carrega os shaders que serão utilizados na renderização
-    //
-    // shaders
-    let vs = shaders::vs::load(device.clone()).expect("failed to create shader module");
-    let fs = shaders::fs::load(device.clone()).expect("failed to create shader module");
+        &renderer.render_pass,
+        &renderer.viewport,
+    );
 
     // declara a pipeline final do programa
     //
     // pipeline
-    let (pipeline, layout) = get_pipeline(
-        device.clone(),
-        vs.clone(),
-        fs.clone(),
-        renderer.render_pass.clone(),
-        renderer.viewport.clone(),
-    );
-
-    // command buffers são buffers de comandos que serão executados
-    // pela GPU, como o envio de comandos para a GPU pode ser lento
-    // vale a pena juntarmos esses comandos em um buffer e enviar
-    // um pacote só.
-    // 
-    // command buffers
-    let command_buffer_allocator =
-        StandardCommandBufferAllocator::new(device.clone(), Default::default());
-
-    //let image = ImageView::new(
-    //        renderer.images[0].clone(),
-    //        ImageViewCreateInfo {
-    //            format: Format::R32_UINT,
-    //            usage: ImageUsage::STORAGE,
-    //            ..Default::default()
-    //        },
-    //    )
-    //    .unwrap(); 
-    //
-    //let descriptor_set_allocator =
-    //    StandardDescriptorSetAllocator::new(device.clone(), Default::default());
-
-    //let layout_descriptor = &pipeline.layout().set_layouts()[0];
-    //let descriptor_set = PersistentDescriptorSet::new(
-    //    &descriptor_set_allocator,
-    //    layout_descriptor.clone(),
-    //    [
-    //        WriteDescriptorSet::image_view(0, image.clone())
-    //    ],
-    //    [],
-    //)
-    //.unwrap();
-
-    // aqui começa o loop de execução do programa
-    //
-    // event loop
-
-    let mut count = 0.0;
 
     let frames_in_flight = usize::try_from(renderer.swapchain.image_count()).unwrap();
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
@@ -211,19 +134,17 @@ fn main() {
         }
         Event::MainEventsCleared => {
             let constants = shaders::vs::PushConstants {
-                position_offset: Into::into([count/100.0, count/100.0]),
+                transform: [[2.0, 0.0], [0.0, 2.0]],
+                position_offset: Into::into([0.0, 0.0]),
                 color_offset: [0.0, 0.0, 0.0],
             };
 
-            let command_buffers = get_command_buffers(
-                &command_buffer_allocator,
+            let command_buffer = renderer.create_command_buffer(
                 &device.graphics_queue,
-                &pipeline,
-                &layout,
-                &renderer.framebuffers,
-                &vertex_buffer,
+                &prerender.pipeline,
+                &prerender.layout,
+                &prerender.vertex_buffer,
                 &constants,
-                //&descriptor_set,
             );
 
             // aqui começamos a renderizar a próxima imagem
@@ -258,7 +179,7 @@ fn main() {
 
             let future = previous_future
                 .join(acquire_future)
-                .then_execute(device.graphics_queue.clone(), command_buffers[image_i as usize].clone())
+                .then_execute(device.graphics_queue.clone(), command_buffer[image_i as usize].clone())
                 .unwrap()
                 .then_swapchain_present(
                     device.graphics_queue.clone(),
@@ -278,122 +199,8 @@ fn main() {
             };
 
             previous_fence_i = image_i;
-
-            count += 1.0;
         }
         _ => (),
     });
 }
 
-fn get_pipeline(
-    device: Arc<Device>,
-    vs: Arc<ShaderModule>,
-    fs: Arc<ShaderModule>,
-    render_pass: Arc<RenderPass>,
-    viewport: Viewport,
-) -> (Arc<GraphicsPipeline>, Arc<PipelineLayout>) {
-    let vs = vs.entry_point("main").unwrap();
-    let fs = fs.entry_point("main").unwrap();
-
-    let vertex_input_state = MyVertex::per_vertex()
-        .definition(&vs.info().input_interface)
-        .unwrap();
-
-    let stages = [
-        PipelineShaderStageCreateInfo::new(vs),
-        PipelineShaderStageCreateInfo::new(fs),
-    ];
-        
-    let layout = PipelineLayout::new(
-        device.clone(),
-        PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
-            .into_pipeline_layout_create_info(device.clone())
-            .unwrap(),
-    )
-    .unwrap();
-
-    let subpass = Subpass::from(render_pass.clone(), 0).unwrap();
-
-    let graphics_pipeline = GraphicsPipeline::new(
-        device.clone(),
-        None,
-        GraphicsPipelineCreateInfo {
-            stages: stages.into_iter().collect(),
-            vertex_input_state: Some(vertex_input_state),
-            input_assembly_state: Some(InputAssemblyState::default()),
-            viewport_state: Some(ViewportState {
-                viewports: [viewport].into_iter().collect(),
-                ..Default::default()
-            }),
-            rasterization_state: Some(RasterizationState::default()),
-            multisample_state: Some(MultisampleState::default()),
-            color_blend_state: Some(ColorBlendState::with_attachment_states(
-                subpass.num_color_attachments(),
-                ColorBlendAttachmentState::default(),
-            )),
-            subpass: Some(subpass.into()),
-            ..GraphicsPipelineCreateInfo::layout(layout.clone())
-        },
-    )
-    .unwrap();
-    (graphics_pipeline, layout)
-}
-
-fn get_command_buffers(
-    command_buffer_allocator: &StandardCommandBufferAllocator,
-    queue: &Arc<Queue>,
-    pipeline: &Arc<GraphicsPipeline>,
-    pipeline_layout: &Arc<PipelineLayout>,
-    framebuffers: &[Arc<Framebuffer>],
-    vertex_buffer: &Subbuffer<[MyVertex]>,
-    push_constants: &shaders::vs::PushConstants,
-    //description_set: &Arc<PersistentDescriptorSet<>>
-) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
-
-
-    framebuffers
-        .iter()
-        .map(|framebuffer| {
-            let mut builder = AutoCommandBufferBuilder::primary(
-                command_buffer_allocator,
-                queue.queue_family_index(),
-                CommandBufferUsage::MultipleSubmit,
-            )
-            .unwrap();
-
-
-
-            builder
-                .begin_render_pass(
-                    RenderPassBeginInfo {
-                        clear_values: vec![Some([0.0, 0.0, 0.0, 1.0].into())],
-                        ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
-                    },
-                    SubpassBeginInfo {
-                        contents: SubpassContents::Inline,
-                        ..Default::default()
-                    },
-                )
-                .unwrap()
-                .bind_pipeline_graphics(pipeline.clone())
-                .unwrap()
-                .bind_vertex_buffers(0, vertex_buffer.clone())
-                .unwrap()
-                //.bind_descriptor_sets(
-                //    PipelineBindPoint::Graphics,
-                //    pipeline.layout().clone(),
-                //    0,
-                //    description_set.clone(),
-                //)
-                //.unwrap()
-                .push_constants(pipeline_layout.clone(), 0, *push_constants)
-                .unwrap()
-                .draw(vertex_buffer.len() as u32, 1, 0, 0)
-                .unwrap()
-                .end_render_pass(Default::default())
-                .unwrap();
-
-            builder.build().unwrap()
-        })
-        .collect()
-}

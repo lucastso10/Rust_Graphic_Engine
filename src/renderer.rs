@@ -1,13 +1,17 @@
 
+use crate::shaders;
+use crate::MyVertex;
 use std::sync::Arc;
 
 use vulkano::{
-    device::Device, 
+    device::{Queue, Device},
     format::Format, 
     image::{view::ImageView, Image, ImageUsage}, 
-    pipeline::graphics::viewport::Viewport, 
+    pipeline::{PipelineLayout, GraphicsPipeline, graphics::viewport::Viewport},
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass}, 
-    swapchain::{ColorSpace, Surface, SurfaceCapabilities, Swapchain, SwapchainCreateInfo}
+    swapchain::{ColorSpace, Surface, SurfaceCapabilities, Swapchain, SwapchainCreateInfo},
+    command_buffer::{PrimaryAutoCommandBuffer, SubpassContents, SubpassBeginInfo, RenderPassBeginInfo, CommandBufferUsage, AutoCommandBufferBuilder, allocator::StandardCommandBufferAllocator},
+    buffer::Subbuffer,
 };
 use winit::dpi::PhysicalSize;
 
@@ -19,6 +23,7 @@ pub struct Renderer {
     pub framebuffers: Vec<Arc<Framebuffer>>,
     pub viewport: Viewport,
     pub images: Vec<Arc<Image>>,
+    pub command_buffer_allocator: StandardCommandBufferAllocator,
 }
 
 impl Renderer {
@@ -63,6 +68,7 @@ impl Renderer {
             render_pass,
             framebuffers,
             images,
+            command_buffer_allocator: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
             // A viewport basically describes the region of 
             // the framebuffer that the output will be rendered to. 
             // This will almost always be (0, 0) to (width, height)
@@ -138,5 +144,60 @@ impl Renderer {
                 .unwrap()
             })
             .collect::<Vec<_>>()
+    }
+
+    pub fn create_command_buffer(
+        &self,
+        queue: &Arc<Queue>,
+        pipeline: &Arc<GraphicsPipeline>,
+        pipeline_layout: &Arc<PipelineLayout>,
+        vertex_buffer: &Subbuffer<[MyVertex]>,
+        push_constants: &shaders::vs::PushConstants,
+    ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
+        self.framebuffers
+            .iter()
+            .map(|framebuffer| {
+                let mut builder = AutoCommandBufferBuilder::primary(
+                    &self.command_buffer_allocator,
+                    queue.queue_family_index(),
+                    CommandBufferUsage::MultipleSubmit,
+                )
+                .unwrap();
+
+
+
+                builder
+                    .begin_render_pass(
+                        RenderPassBeginInfo {
+                            clear_values: vec![Some([0.0, 0.0, 0.0, 1.0].into())],
+                            ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
+                        },
+                        SubpassBeginInfo {
+                            contents: SubpassContents::Inline,
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap()
+                    .bind_pipeline_graphics(pipeline.clone())
+                    .unwrap()
+                    .bind_vertex_buffers(0, vertex_buffer.clone())
+                    .unwrap()
+                    //.bind_descriptor_sets(
+                    //    PipelineBindPoint::Graphics,
+                    //    pipeline.layout().clone(),
+                    //    0,
+                    //    description_set.clone(),
+                    //)
+                    //.unwrap()
+                    .push_constants(pipeline_layout.clone(), 0, *push_constants)
+                    .unwrap()
+                    .draw(vertex_buffer.len() as u32, 1, 0, 0)
+                    .unwrap()
+                    .end_render_pass(Default::default())
+                    .unwrap();
+
+                builder.build().unwrap()
+            })
+            .collect()
     }
 }

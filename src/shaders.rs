@@ -10,12 +10,13 @@ pub mod vs {
             layout(location = 0) out vec3 fragColor;
 
             layout(push_constant) uniform PushConstants {
+                mat2 transform;
                 vec2 position_offset;
                 vec3 color_offset;
             } push;
 
             void main() {
-                gl_Position = vec4(position + push.position_offset, 0.0, 1.0);
+                gl_Position = vec4(push.transform * position + push.position_offset, 0.0, 1.0);
                 fragColor = inColor;
             }
         ",
