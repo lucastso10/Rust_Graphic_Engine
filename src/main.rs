@@ -2,26 +2,14 @@ mod shaders;
 mod device;
 mod renderer;
 mod prerender;
+mod object;
 
 use std::sync::Arc;
 
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage};
-use vulkano::device::{
-    Device, DeviceExtensions,
-};
+use vulkano::buffer::BufferContents;
+use vulkano::device::DeviceExtensions;
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
-use vulkano::pipeline::graphics::color_blend::{ColorBlendAttachmentState, ColorBlendState};
-use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::multisample::MultisampleState;
-use vulkano::pipeline::graphics::rasterization::RasterizationState;
-use vulkano::pipeline::graphics::vertex_input::{Vertex, VertexDefinition};
-use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
-use vulkano::pipeline::layout::PipelineDescriptorSetLayoutCreateInfo;
-use vulkano::pipeline::{GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo};
-use vulkano::render_pass::{self, RenderPass, Subpass};
-use vulkano::shader::ShaderModule;
+use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::swapchain::{self, Surface, SwapchainPresentInfo};
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::{self, GpuFuture};
@@ -110,6 +98,8 @@ fn main() {
         color: [0.0, 0.0, 1.0],
     };
 
+    let mut object = object::Object::new();
+
     let prerender = prerender::PreRenderer::new(
         &device, 
         vec![vertex1, vertex2, vertex3],
@@ -134,9 +124,8 @@ fn main() {
         }
         Event::MainEventsCleared => {
             let constants = shaders::vs::PushConstants {
-                transform: [[2.0, 0.0], [0.0, 2.0]],
-                position_offset: Into::into([0.0, 0.0]),
-                color_offset: [0.0, 0.0, 0.0],
+                transform: object.manipulate(glam::Vec2 { x: 1.0, y: 1.0 }, 0.05),
+                //position_offset: Into::into([0.0, 0.0]),
             };
 
             let command_buffer = renderer.create_command_buffer(

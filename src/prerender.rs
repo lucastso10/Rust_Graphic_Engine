@@ -25,10 +25,10 @@ use vulkano::{
 use crate::{device::GPU, shaders, MyVertex};
 
 pub struct PreRenderer {
-    memory_allocator: Arc<StandardMemoryAllocator>,
+    //memory_allocator: Arc<StandardMemoryAllocator>,
     pub vertex_buffer: Subbuffer<[MyVertex]>,
-    vs: Arc<ShaderModule>,
-    fs: Arc<ShaderModule>,
+    //vs: Arc<ShaderModule>,
+    //fs: Arc<ShaderModule>,
     pub pipeline: Arc<GraphicsPipeline>,
     pub layout: Arc<PipelineLayout>,
 }
@@ -36,7 +36,7 @@ pub struct PreRenderer {
 impl PreRenderer {
     pub fn new(
         device: &GPU,
-        vertexes: Vec<MyVertex>,
+        objects: Vec<MyVertex>,
         render_pass: &Arc<RenderPass>,
         viewport: &Viewport,
         ) -> Self{
@@ -52,7 +52,7 @@ impl PreRenderer {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            vertexes,
+            objects,
         )
         .unwrap();
 
@@ -61,10 +61,10 @@ impl PreRenderer {
 
         let (pipeline, layout) = Self::get_pipeline(device, vs.clone(), fs.clone(), render_pass.clone(), viewport.clone());
         Self {
-            memory_allocator,
+            //memory_allocator,
             vertex_buffer,
-            vs,
-            fs,
+            //vs,
+            //fs,
             pipeline,
             layout,
         }

@@ -22,7 +22,7 @@ pub struct Renderer {
     pub render_pass: Arc<RenderPass>,
     pub framebuffers: Vec<Arc<Framebuffer>>,
     pub viewport: Viewport,
-    pub images: Vec<Arc<Image>>,
+    //pub images: Vec<Arc<Image>>,
     pub command_buffer_allocator: StandardCommandBufferAllocator,
 }
 
@@ -67,7 +67,7 @@ impl Renderer {
             swapchain,
             render_pass,
             framebuffers,
-            images,
+            //images,
             command_buffer_allocator: StandardCommandBufferAllocator::new(device.clone(), Default::default()),
             // A viewport basically describes the region of 
             // the framebuffer that the output will be rendered to. 
