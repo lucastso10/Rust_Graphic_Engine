@@ -169,7 +169,7 @@ impl Renderer {
                 builder
                     .begin_render_pass(
                         RenderPassBeginInfo {
-                            clear_values: vec![Some([0.0, 0.0, 0.0, 1.0].into())],
+                            clear_values: vec![Some([0.22, 0.22, 0.22, 1.0].into())],
                             ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
                         },
                         SubpassBeginInfo {

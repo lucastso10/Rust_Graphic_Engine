@@ -1,11 +1,10 @@
 //use crate::MyVertex;
 
-use glam::f32::{Mat2, Vec2};
-use vulkano::padded::Padded;
+use glam::{f32::{Mat4, Vec3}, Quat};
 
 pub struct Object {
     //pub model: Vec<MyVertex>,
-    transform: Mat2,
+    pub transform: Mat4,
 }
 
 impl Object {
@@ -14,15 +13,19 @@ impl Object {
     ) -> Self {
         Self {
             //model,
-            transform: Mat2::IDENTITY,
+            transform: Mat4::IDENTITY,
         }
     }
 
-    pub fn manipulate(&mut self, scale: Vec2, rotation: f32) -> [[f32; 2]; 2]{
-        let rotation_scale = Mat2::from_scale_angle(scale, rotation);
+    pub fn scale(&mut self, scale: Vec3) {
+        self.transform *= Mat4::from_scale(scale);
+    }
 
-        self.transform *= rotation_scale;
+    pub fn rotate(&mut self, rotation: Quat) {
+        self.transform *= Mat4::from_quat(rotation);
+    }
 
-        self.transform.to_cols_array_2d()
+    pub fn translation(&mut self, translation: Vec3) {
+        self.transform *= Mat4::from_translation(translation);
     }
 }

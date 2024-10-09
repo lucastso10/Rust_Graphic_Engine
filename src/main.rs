@@ -6,6 +6,7 @@ mod object;
 
 use std::sync::Arc;
 
+use glam::{Quat, Vec3};
 use vulkano::buffer::BufferContents;
 use vulkano::device::DeviceExtensions;
 use vulkano::instance::{Instance, InstanceCreateInfo};
@@ -35,8 +36,8 @@ use winit::window::WindowBuilder;
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
 pub struct MyVertex {
-    #[format(R32G32_SFLOAT)]
-    position: [f32; 2],
+    #[format(R32G32B32_SFLOAT)]
+    position: [f32; 3],
     #[name("inColor")]
     #[format(R32G32B32_SFLOAT)]
     color: [f32; 3],
@@ -85,24 +86,90 @@ fn main() {
         window.inner_size(),
     );
 
-    let vertex1 = MyVertex {
-        position: [0.0, -0.5],
-        color: [1.0, 0.0, 0.0],
-    };
-    let vertex2 = MyVertex {
-        position: [0.5, 0.5],
-        color: [0.0, 1.0, 0.0],
-    };
-    let vertex3 = MyVertex {
-        position: [-0.5, 0.5],
-        color: [0.0, 0.0, 1.0],
-    };
+      let vertex1 = MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.9, 0.9]};
+      let vertex2 = MyVertex { position: [-0.5, 0.5, 0.5], color: [0.9, 0.9, 0.9]};
+      let vertex3 = MyVertex { position: [-0.5, -0.5, 0.5], color: [0.9, 0.9, 0.9]};
+      let vertex4 = MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.9, 0.9]};
+      let vertex5 = MyVertex { position: [-0.5, 0.5, -0.5], color: [0.9, 0.9, 0.9]};
+      let vertex6 = MyVertex { position: [-0.5, 0.5, 0.5], color: [0.9, 0.9, 0.9]};
+ 
+      let vertex7 = MyVertex { position: [0.5, -0.5, -0.5], color: [0.8, 0.8, 0.1]};
+      let vertex8 = MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.8, 0.1]};
+      let vertex9 = MyVertex { position: [0.5, -0.5, 0.5], color: [0.8, 0.8, 0.1]};
+      let vertex10 = MyVertex { position: [0.5, -0.5, -0.5], color: [0.8, 0.8, 0.1]};
+      let vertex11 = MyVertex { position: [0.5, 0.5, -0.5], color: [0.8, 0.8, 0.1]};
+      let vertex12 = MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.8, 0.1]};
+ 
+      let vertex13 = MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.6, 0.1]};
+      let vertex14 = MyVertex { position: [0.5, -0.5, 0.5], color: [0.9, 0.6, 0.1]};
+      let vertex15 = MyVertex { position: [-0.5, -0.5, 0.5], color: [0.9, 0.6, 0.1]};
+      let vertex16 = MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.6, 0.1]};
+      let vertex17 = MyVertex { position: [0.5, -0.5, -0.5], color: [0.9, 0.6, 0.1]};
+      let vertex18 = MyVertex { position: [0.5, -0.5, 0.5], color: [0.9, 0.6, 0.1]};
+ 
+      let vertex19 = MyVertex { position: [-0.5, 0.5, -0.5], color: [0.8, 0.1, 0.1]};
+      let vertex20 = MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.1, 0.1]};
+      let vertex21 = MyVertex { position: [-0.5, 0.5, 0.5], color: [0.8, 0.1, 0.1]};
+      let vertex22 = MyVertex { position: [-0.5, 0.5, -0.5], color: [0.8, 0.1, 0.1]};
+      let vertex23 = MyVertex { position: [0.5, 0.5, -0.5], color: [0.8, 0.1, 0.1]};
+      let vertex24 = MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.1, 0.1]};
+ 
+      let vertex25 = MyVertex { position: [-0.5, -0.5, 0.5], color: [0.1, 0.1, 0.8]};
+      let vertex26 = MyVertex { position: [0.5, 0.5, 0.5], color: [0.1, 0.1, 0.8]};
+      let vertex27 = MyVertex { position: [-0.5, 0.5, 0.5], color: [0.1, 0.1, 0.8]};
+      let vertex28 = MyVertex { position: [-0.5, -0.5, 0.5], color: [0.1, 0.1, 0.8]};
+      let vertex29 = MyVertex { position: [0.5, -0.5, 0.5], color: [0.1, 0.1, 0.8]};
+      let vertex30 = MyVertex { position: [0.5, 0.5, 0.5], color: [0.1, 0.1, 0.8]};
+ 
+      let vertex31 = MyVertex { position: [-0.5, -0.5, -0.5], color: [0.1, 0.8, 0.1]};
+      let vertex32 = MyVertex { position: [0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]};
+      let vertex33 = MyVertex { position: [-0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]};
+      let vertex34 = MyVertex { position: [-0.5, -0.5, -0.5], color: [0.1, 0.8, 0.1]};
+      let vertex35 = MyVertex { position: [0.5, -0.5, -0.5], color: [0.1, 0.8, 0.1]};
+      let vertex36 = MyVertex { position: [0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]};
 
     let mut object = object::Object::new();
 
     let prerender = prerender::PreRenderer::new(
         &device, 
-        vec![vertex1, vertex2, vertex3],
+        vec![
+            vertex1, 
+            vertex2, 
+            vertex3, 
+            vertex4, 
+            vertex5, 
+            vertex6, 
+            vertex7, 
+            vertex8, 
+            vertex9, 
+            vertex10, 
+            vertex11, 
+            vertex12, 
+            vertex13, 
+            vertex14, 
+            vertex15, 
+            vertex16, 
+            vertex17, 
+            vertex18, 
+            vertex19, 
+            vertex20, 
+            vertex21, 
+            vertex22, 
+            vertex23, 
+            vertex24, 
+            vertex25, 
+            vertex26, 
+            vertex27, 
+            vertex28, 
+            vertex29, 
+            vertex30, 
+            vertex31, 
+            vertex32, 
+            vertex33, 
+            vertex34, 
+            vertex35, 
+            vertex36, 
+        ],
         &renderer.render_pass,
         &renderer.viewport,
     );
@@ -115,6 +182,9 @@ fn main() {
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
+    object.scale(Vec3::from_array([0.5, 0.5, 0.5]));
+    object.translation(Vec3::from_array([0.2, 0.2, 0.0]));
+
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
@@ -123,9 +193,10 @@ fn main() {
             *control_flow = ControlFlow::Exit;
         }
         Event::MainEventsCleared => {
+            object.rotate(Quat::from_array([-0.01, 0.0, 0.0, 1.0]));
+
             let constants = shaders::vs::PushConstants {
-                transform: object.manipulate(glam::Vec2 { x: 1.0, y: 1.0 }, 0.05),
-                //position_offset: Into::into([0.0, 0.0]),
+                transform: object.transform.to_cols_array_2d(),
             };
 
             let command_buffer = renderer.create_command_buffer(
