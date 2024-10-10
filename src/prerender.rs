@@ -12,6 +12,7 @@ use vulkano::{
             rasterization::RasterizationState,
             viewport::{Viewport, ViewportState},
             input_assembly::InputAssemblyState,
+            depth_stencil::{DepthState, DepthStencilState},
             GraphicsPipelineCreateInfo,
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
@@ -111,6 +112,10 @@ impl PreRenderer {
                     ..Default::default()
                 }),
                 rasterization_state: Some(RasterizationState::default()),
+                depth_stencil_state: Some(DepthStencilState {
+                    depth: Some(DepthState::simple()),
+                    ..Default::default()
+                }),
                 multisample_state: Some(MultisampleState::default()),
                 color_blend_state: Some(ColorBlendState::with_attachment_states(
                     subpass.num_color_attachments(),

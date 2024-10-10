@@ -6,12 +6,13 @@ use std::sync::Arc;
 use vulkano::{
     device::{Queue, Device},
     format::Format, 
-    image::{view::ImageView, Image, ImageUsage}, 
+    image::{view::ImageView, Image, ImageUsage, ImageType, ImageCreateInfo}, 
     pipeline::{PipelineLayout, GraphicsPipeline, graphics::viewport::Viewport},
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass}, 
     swapchain::{ColorSpace, Surface, SurfaceCapabilities, Swapchain, SwapchainCreateInfo},
     command_buffer::{PrimaryAutoCommandBuffer, SubpassContents, SubpassBeginInfo, RenderPassBeginInfo, CommandBufferUsage, AutoCommandBufferBuilder, allocator::StandardCommandBufferAllocator},
     buffer::Subbuffer,
+    memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
 };
 use winit::dpi::PhysicalSize;
 
@@ -61,7 +62,7 @@ impl Renderer {
         // exibidas na tela
         //
         // framebuffers
-        let framebuffers = Self::create_framebuffers(&images, render_pass.clone());
+        let framebuffers = Self::create_framebuffers(&images, render_pass.clone(), device);
 
         Self {
             swapchain,
@@ -112,24 +113,46 @@ impl Renderer {
     fn create_render_pass(device: Arc<Device>, swapchain: Arc<Swapchain>) -> Arc<RenderPass> {
         // Isso provavelmente vai mudar drasticamente
         vulkano::single_pass_renderpass!(
-            device,
+            device.clone(),
             attachments: {
                 color: {
-                    format: swapchain.image_format(), // set the format the same as the swapchain
+                    format: swapchain.image_format(),
                     samples: 1,
                     load_op: Clear,
                     store_op: Store,
                 },
+                depth_stencil: {
+                    format: Format::D16_UNORM,
+                    samples: 1,
+                    load_op: Clear,
+                    store_op: DontCare,
+                },
             },
             pass: {
                 color: [color],
-                depth_stencil: {},
+                depth_stencil: {depth_stencil},
             },
         )
         .unwrap()
     }
 
-    fn create_framebuffers(images: &[Arc<Image>], render_pass: Arc<RenderPass>) -> Vec<Arc<Framebuffer>> {
+    fn create_framebuffers(images: &[Arc<Image>], render_pass: Arc<RenderPass>, device: &GPU) -> Vec<Arc<Framebuffer>> {
+        let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+        let depth_buffer = ImageView::new_default(
+            Image::new(
+                memory_allocator,
+                ImageCreateInfo {
+                    image_type: ImageType::Dim2d,
+                    format: Format::D16_UNORM,
+                    extent: images[0].extent(),
+                    usage: ImageUsage::DEPTH_STENCIL_ATTACHMENT | ImageUsage::TRANSIENT_ATTACHMENT,
+                    ..Default::default()
+                },
+                AllocationCreateInfo::default(),
+            )
+            .unwrap()
+        )
+        .unwrap();
         images
             .iter()
             .map(|image| {
@@ -137,7 +160,7 @@ impl Renderer {
                 Framebuffer::new(
                     render_pass.clone(),
                     FramebufferCreateInfo {
-                        attachments: vec![view],
+                        attachments: vec![view, depth_buffer.clone()],
                         ..Default::default()
                     },
                 )
@@ -169,7 +192,10 @@ impl Renderer {
                 builder
                     .begin_render_pass(
                         RenderPassBeginInfo {
-                            clear_values: vec![Some([0.22, 0.22, 0.22, 1.0].into())],
+                            clear_values: vec![
+                                Some([0.22, 0.22, 0.22, 1.0].into()),
+                                Some(1f32.into()),
+                            ],
                             ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
                         },
                         SubpassBeginInfo {

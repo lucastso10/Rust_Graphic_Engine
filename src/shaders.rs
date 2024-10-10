@@ -32,7 +32,7 @@ pub mod fs {
             layout(location = 0) out vec4 f_color;
 
             void main() {
-                f_color = vec4(inColor, 0.5);
+                f_color = vec4(inColor, 1.0);
             }
         ",
     }
