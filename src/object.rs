@@ -1,34 +1,38 @@
 //use crate::MyVertex;
 
-use glam::{f32::{Mat4, Vec3}, Vec4};
+use glam::f32::{Mat4, Vec3};
 
 pub struct Object {
     //pub model: Vec<MyVertex>,
-    pub transform: Mat4,
+    pub translation: Vec3,
+    pub scale: Vec3,
+    pub rotation: Vec3,
 }
 
 impl Object {
     pub fn new(
+        translation: Vec3,
+        scale: Vec3,
+        rotation: Vec3,
         //model: Vec<MyVertex>,
     ) -> Self {
         Self {
             //model,
-            transform: Mat4::IDENTITY,
+            translation,
+            scale,
+            rotation,
         }
     }
 
-    pub fn scale(&mut self, scale: Vec3) {
-        self.transform = self.transform.mul_mat4(&Mat4::from_scale(scale))
-    }
+    pub fn calculate_matrix(&mut self) -> [[f32; 4]; 4] {
+        let mut matrix = Mat4::IDENTITY * Mat4::from_translation(self.translation);
 
-    pub fn rotate(&mut self, z: f32, x: f32, y: f32) {
-        self.transform *= Mat4::from_rotation_z(z);
-        self.transform *= Mat4::from_rotation_y(y);
-        self.transform *= Mat4::from_rotation_x(x);
-        println!("{}", self.transform.mul_vec4(Vec4::from_array([-0.5, 0.5, -0.5, 1.0])))
-    }
+        matrix *= Mat4::from_rotation_y(self.rotation.y);
+        matrix *= Mat4::from_rotation_x(self.rotation.x);
+        matrix *= Mat4::from_rotation_z(self.rotation.z);
 
-    pub fn translation(&mut self, translation: Vec3) {
-        self.transform = self.transform.mul_mat4(&Mat4::from_translation(translation));
+        matrix *= Mat4::from_scale(self.scale);
+
+        matrix.to_cols_array_2d()
     }
 }

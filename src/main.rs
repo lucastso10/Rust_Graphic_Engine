@@ -6,7 +6,7 @@ mod object;
 
 use std::sync::Arc;
 
-use glam::Vec3;
+use glam::{Quat, Vec3};
 use vulkano::buffer::BufferContents;
 use vulkano::device::DeviceExtensions;
 use vulkano::instance::{Instance, InstanceCreateInfo};
@@ -130,7 +130,11 @@ fn main() {
        MyVertex { position: [0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]},
     ];
 
-    let mut object = object::Object::new();
+    let mut object = object::Object::new(
+            Vec3::from_array([0.0, 0.0, 0.5]),
+            Vec3::from_array([0.5, 0.5, 0.5]),
+            Vec3::from_array([0.0, 0.0, 0.0]),
+        );
 
     let prerender = prerender::PreRenderer::new(
         &device, 
@@ -147,9 +151,8 @@ fn main() {
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
-    //object.scale(Vec3::from_array([0.5, 0.5, 0.5]));
-    //object.translation(Vec3::from_array([0.0, 0.0, 0.0]));
-    
+    let mut count = 0.0;
+
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -159,10 +162,13 @@ fn main() {
             *control_flow = ControlFlow::Exit;
         }
         Event::MainEventsCleared => {
-            object.rotate(0.0, 0.001, 0.0);
+
+            count += 0.01;
+
+            object.rotation = Vec3::from_array([count / 8.0, count, 0.0]);
 
             let constants = shaders::vs::PushConstants {
-                transform: object.transform.to_cols_array_2d(),
+                transform: object.calculate_matrix(),
             };
 
             let command_buffer = renderer.create_command_buffer(
