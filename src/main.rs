@@ -25,7 +25,6 @@ use winit::window::WindowBuilder;
     // surface
 
     // GPU { physical device, logical device, queue creation }
-
     // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     // vertex buffer
     // shaders
@@ -146,7 +145,6 @@ fn main() {
     // declara a pipeline final do programa
     //
     // pipeline
-
     let frames_in_flight = usize::try_from(renderer.swapchain.image_count()).unwrap();
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
@@ -162,7 +160,6 @@ fn main() {
             *control_flow = ControlFlow::Exit;
         }
         Event::MainEventsCleared => {
-
             count += 0.01;
 
             object.rotation = Vec3::from_array([count / 5.0, count, 0.0]);
@@ -178,7 +175,6 @@ fn main() {
                 &prerender.vertex_buffer,
                 &constants,
             );
-
             // aqui começamos a renderizar a próxima imagem
             let (image_i, _suboptimal, acquire_future) =
                 match swapchain::acquire_next_image(renderer.swapchain.clone(), None)
@@ -235,4 +231,3 @@ fn main() {
         _ => (),
     });
 }
-
