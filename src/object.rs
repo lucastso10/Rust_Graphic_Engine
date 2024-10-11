@@ -25,14 +25,26 @@ impl Object {
     }
 
     pub fn calculate_matrix(&mut self) -> [[f32; 4]; 4] {
-        let mut matrix = Mat4::IDENTITY * Mat4::from_translation(self.translation);
-
-        matrix *= Mat4::from_rotation_y(self.rotation.y);
-        matrix *= Mat4::from_rotation_x(self.rotation.x);
-        matrix *= Mat4::from_rotation_z(self.rotation.z);
-
-        matrix *= Mat4::from_scale(self.scale);
-
-        matrix.to_cols_array_2d()
+        let c3 = f32::cos(self.rotation.z);
+        let s3 = f32::sin(self.rotation.z);
+        let c2 = f32::cos(self.rotation.x);
+        let s2 = f32::sin(self.rotation.x);
+        let c1 = f32::cos(self.rotation.y);
+        let s1 = f32::sin(self.rotation.y);
+        Mat4::from_cols_array(&[
+            self.scale.x * (c1 * c3 + s1 * s2 * s3),
+            self.scale.x * (c2 * s3),
+            self.scale.x * (c1 * s2 * s3 - c3 * s1),
+            0.0,
+            self.scale.y * (c3 * s1 * s2 - c1 * s3),
+            self.scale.y * (c2 * c3),
+            self.scale.y * (c1 * c3 * s2 + s1 * s3),
+            0.0,
+            self.scale.z * (c2 * s1),
+            self.scale.z * (-s2),
+            self.scale.z * (c1 * c2),
+            0.0,
+            self.translation.x, self.translation.y, self.translation.z, 1.0
+        ]).to_cols_array_2d()
     }
 }

@@ -165,7 +165,7 @@ fn main() {
 
             count += 0.01;
 
-            object.rotation = Vec3::from_array([count / 8.0, count, 0.0]);
+            object.rotation = Vec3::from_array([count / 5.0, count, 0.0]);
 
             let constants = shaders::vs::PushConstants {
                 transform: object.calculate_matrix(),
