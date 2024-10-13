@@ -1,5 +1,5 @@
 pub mod vs {
-    vulkano_shaders::shader!{
+    vulkano_shaders::shader! {
         ty: "vertex",
         src: r"
             #version 460
@@ -9,12 +9,14 @@ pub mod vs {
 
             layout(location = 0) out vec3 fragColor;
 
-            layout(push_constant) uniform PushConstants {
+            layout(set = 0, binding = 0) uniform Data {
                 mat4 transform;
-            } push;
+                mat4 camera;
+            } uniforms;
+
 
             void main() {
-                gl_Position = push.transform * vec4(position, 1.0);
+                gl_Position = uniforms.camera * uniforms.transform * vec4(position, 1.0);
                 fragColor = inColor;
             }
         ",
@@ -22,7 +24,7 @@ pub mod vs {
 }
 
 pub mod fs {
-    vulkano_shaders::shader!{
+    vulkano_shaders::shader! {
         ty: "fragment",
         src: "
             #version 460

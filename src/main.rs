@@ -1,12 +1,13 @@
-mod shaders;
+mod camera;
 mod device;
-mod renderer;
-mod prerender;
 mod object;
+mod prerender;
+mod renderer;
+mod shaders;
 
 use std::sync::Arc;
 
-use glam::{Quat, Vec3};
+use glam::Vec3;
 use vulkano::buffer::BufferContents;
 use vulkano::device::DeviceExtensions;
 use vulkano::instance::{Instance, InstanceCreateInfo};
@@ -20,17 +21,17 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 
 // ORDEM DA CRIAÇÃO DE OBJETOS
-    // instance
+// instance
 
-    // surface
+// surface
 
-    // GPU { physical device, logical device, queue creation }
-    // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
-    // vertex buffer
-    // shaders
-    // pipeline
+// GPU { physical device, logical device, queue creation }
+// Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
+// vertex buffer
+// shaders
+// pipeline
 
-    // event loop
+// event loop
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
@@ -43,7 +44,8 @@ pub struct MyVertex {
 }
 
 fn main() {
-    let library = vulkano::VulkanLibrary::new().expect("no local Vulkan library/DLL. Did you install Vulkan?");
+    let library = vulkano::VulkanLibrary::new()
+        .expect("no local Vulkan library/DLL. Did you install Vulkan?");
     let event_loop = EventLoop::new();
 
     // instância da vulkan
@@ -58,10 +60,11 @@ fn main() {
     )
     .expect("failed to create instance");
 
-    let window = Arc::new(WindowBuilder::new()
-        .with_resizable(false)
-        .build(&event_loop)
-        .expect("Failed to create window")
+    let window = Arc::new(
+        WindowBuilder::new()
+            .with_resizable(false)
+            .build(&event_loop)
+            .expect("Failed to create window"),
     );
 
     // superficie que o vulkan leva em cosideração para desenhar a imagem
@@ -73,70 +76,169 @@ fn main() {
         DeviceExtensions {
             khr_swapchain: true,
             ..DeviceExtensions::empty()
-        }, 
-        &instance, 
-        &surface
+        },
+        &instance,
+        &surface,
     );
 
     // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
-    let renderer = renderer::Renderer::new(
-        &device, 
-        surface.clone(), 
-        window.inner_size(),
-    );
+    let renderer = renderer::Renderer::new(&device, surface.clone(), window.inner_size());
 
     let cubo_vertexes = vec![
-      MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.9, 0.9]},
-      MyVertex { position: [-0.5, 0.5, 0.5], color: [0.9, 0.9, 0.9]},
-      MyVertex { position: [-0.5, -0.5, 0.5], color: [0.9, 0.9, 0.9]},
-      MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.9, 0.9]},
-      MyVertex { position: [-0.5, 0.5, -0.5], color: [0.9, 0.9, 0.9]},
-      MyVertex { position: [-0.5, 0.5, 0.5], color: [0.9, 0.9, 0.9]},
- 
-      MyVertex { position: [0.5, -0.5, -0.5], color: [0.8, 0.8, 0.1]},
-      MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.8, 0.1]},
-      MyVertex { position: [0.5, -0.5, 0.5], color: [0.8, 0.8, 0.1]},
-       MyVertex { position: [0.5, -0.5, -0.5], color: [0.8, 0.8, 0.1]},
-       MyVertex { position: [0.5, 0.5, -0.5], color: [0.8, 0.8, 0.1]},
-       MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.8, 0.1]},
- 
-       MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.6, 0.1]},
-       MyVertex { position: [0.5, -0.5, 0.5], color: [0.9, 0.6, 0.1]},
-       MyVertex { position: [-0.5, -0.5, 0.5], color: [0.9, 0.6, 0.1]},
-       MyVertex { position: [-0.5, -0.5, -0.5], color: [0.9, 0.6, 0.1]},
-       MyVertex { position: [0.5, -0.5, -0.5], color: [0.9, 0.6, 0.1]},
-       MyVertex { position: [0.5, -0.5, 0.5], color: [0.9, 0.6, 0.1]},
- 
-       MyVertex { position: [-0.5, 0.5, -0.5], color: [0.8, 0.1, 0.1]},
-       MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.1, 0.1]},
-       MyVertex { position: [-0.5, 0.5, 0.5], color: [0.8, 0.1, 0.1]},
-       MyVertex { position: [-0.5, 0.5, -0.5], color: [0.8, 0.1, 0.1]},
-       MyVertex { position: [0.5, 0.5, -0.5], color: [0.8, 0.1, 0.1]},
-       MyVertex { position: [0.5, 0.5, 0.5], color: [0.8, 0.1, 0.1]},
- 
-       MyVertex { position: [-0.5, -0.5, 0.5], color: [0.1, 0.1, 0.8]},
-       MyVertex { position: [0.5, 0.5, 0.5], color: [0.1, 0.1, 0.8]},
-       MyVertex { position: [-0.5, 0.5, 0.5], color: [0.1, 0.1, 0.8]},
-       MyVertex { position: [-0.5, -0.5, 0.5], color: [0.1, 0.1, 0.8]},
-       MyVertex { position: [0.5, -0.5, 0.5], color: [0.1, 0.1, 0.8]},
-       MyVertex { position: [0.5, 0.5, 0.5], color: [0.1, 0.1, 0.8]},
- 
-       MyVertex { position: [-0.5, -0.5, -0.5], color: [0.1, 0.8, 0.1]},
-       MyVertex { position: [0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]},
-       MyVertex { position: [-0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]},
-       MyVertex { position: [-0.5, -0.5, -0.5], color: [0.1, 0.8, 0.1]},
-       MyVertex { position: [0.5, -0.5, -0.5], color: [0.1, 0.8, 0.1]},
-       MyVertex { position: [0.5, 0.5, -0.5], color: [0.1, 0.8, 0.1]},
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
     ];
 
     let mut object = object::Object::new(
-            Vec3::from_array([0.0, 0.0, 0.5]),
-            Vec3::from_array([0.5, 0.5, 0.5]),
-            Vec3::from_array([0.0, 0.0, 0.0]),
-        );
+        Vec3::from_array([0.0, 0.0, 2.5]),
+        Vec3::from_array([0.5, 0.5, 0.5]),
+        Vec3::from_array([0.0, 0.0, 0.0]),
+    );
 
     let prerender = prerender::PreRenderer::new(
-        &device, 
+        &device,
         cubo_vertexes,
         &renderer.render_pass,
         &renderer.viewport,
@@ -151,6 +253,19 @@ fn main() {
 
     let mut count = 0.0;
 
+    let mut camera = camera::Camera::default();
+
+    // 0.87266462599716 = 50 graus
+    camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
+
+    //camera.orthographic_view(1.0, -1.0, -1.0, 1.0, -1.0, 1.0);
+
+    //camera.setViewDirection(Vec3::from_array([0.0, 0.0, 0.0]), Vec3::from_array([0.5, 0.0, 1.0]), Vec3::from_array([0.0, -1.0, 0.0]));
+    camera.setViewTarget(
+        Vec3::from_array([-1.0, -2.0, -20.0]),
+        Vec3::from_array([0.0, 0.0, 2.5]),
+        Vec3::from_array([0.0, -1.0, 0.0]),
+    );
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -164,8 +279,9 @@ fn main() {
 
             object.rotation = Vec3::from_array([count / 5.0, count, 0.0]);
 
-            let constants = shaders::vs::PushConstants {
+            let uniform = shaders::vs::Data {
                 transform: object.calculate_matrix(),
+                camera: (camera.projection * camera.view).to_cols_array_2d(),
             };
 
             let command_buffer = renderer.create_command_buffer(
@@ -173,7 +289,7 @@ fn main() {
                 &prerender.pipeline,
                 &prerender.layout,
                 &prerender.vertex_buffer,
-                &constants,
+                &uniform,
             );
             // aqui começamos a renderizar a próxima imagem
             let (image_i, _suboptimal, acquire_future) =
@@ -207,19 +323,23 @@ fn main() {
 
             let future = previous_future
                 .join(acquire_future)
-                .then_execute(device.graphics_queue.clone(), command_buffer[image_i as usize].clone())
+                .then_execute(
+                    device.graphics_queue.clone(),
+                    command_buffer[image_i as usize].clone(),
+                )
                 .unwrap()
                 .then_swapchain_present(
                     device.graphics_queue.clone(),
-                    SwapchainPresentInfo::swapchain_image_index(renderer.swapchain.clone(), image_i),
+                    SwapchainPresentInfo::swapchain_image_index(
+                        renderer.swapchain.clone(),
+                        image_i,
+                    ),
                 )
                 .then_signal_fence_and_flush();
 
             fences[image_i as usize] = match future.map_err(Validated::unwrap) {
                 Ok(value) => Some(Arc::new(value)),
-                Err(VulkanError::OutOfDate) => {
-                    None
-                }
+                Err(VulkanError::OutOfDate) => None,
                 Err(e) => {
                     println!("failed to flush future: {e}");
                     None

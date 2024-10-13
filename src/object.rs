@@ -44,7 +44,11 @@ impl Object {
             self.scale.z * (-s2),
             self.scale.z * (c1 * c2),
             0.0,
-            self.translation.x, self.translation.y, self.translation.z, 1.0
-        ]).to_cols_array_2d()
+            self.translation.x,
+            self.translation.y,
+            self.translation.z,
+            1.0,
+        ])
+        .to_cols_array_2d()
     }
 }

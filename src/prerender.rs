@@ -1,23 +1,21 @@
-
 use std::sync::Arc;
 
 use vulkano::{
-    buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer}, 
-    memory::allocator::{ AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator}, 
-    pipeline::{GraphicsPipeline, 
+    buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
+    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
+    pipeline::{
         graphics::{
-            vertex_input::{Vertex, VertexDefinition}, 
             color_blend::{ColorBlendAttachmentState, ColorBlendState},
+            depth_stencil::{DepthState, DepthStencilState},
+            input_assembly::InputAssemblyState,
             multisample::MultisampleState,
             rasterization::RasterizationState,
+            vertex_input::{Vertex, VertexDefinition},
             viewport::{Viewport, ViewportState},
-            input_assembly::InputAssemblyState,
-            depth_stencil::{DepthState, DepthStencilState},
             GraphicsPipelineCreateInfo,
         },
         layout::PipelineDescriptorSetLayoutCreateInfo,
-        PipelineShaderStageCreateInfo,
-        PipelineLayout,
+        GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
     },
     render_pass::{RenderPass, Subpass},
     shader::ShaderModule,
@@ -40,10 +38,9 @@ impl PreRenderer {
         objects: Vec<MyVertex>,
         render_pass: &Arc<RenderPass>,
         viewport: &Viewport,
-        ) -> Self{
-        let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
+    ) -> Self {
         let vertex_buffer = Buffer::from_iter(
-            memory_allocator.clone(),
+            device.memory_allocator.clone(),
             BufferCreateInfo {
                 usage: BufferUsage::VERTEX_BUFFER,
                 ..Default::default()
@@ -60,7 +57,13 @@ impl PreRenderer {
         let vs = shaders::vs::load(device.clone()).expect("failed to create shader module");
         let fs = shaders::fs::load(device.clone()).expect("failed to create shader module");
 
-        let (pipeline, layout) = Self::get_pipeline(device, vs.clone(), fs.clone(), render_pass.clone(), viewport.clone());
+        let (pipeline, layout) = Self::get_pipeline(
+            device,
+            vs.clone(),
+            fs.clone(),
+            render_pass.clone(),
+            viewport.clone(),
+        );
         Self {
             //memory_allocator,
             vertex_buffer,
@@ -80,16 +83,16 @@ impl PreRenderer {
     ) -> (Arc<GraphicsPipeline>, Arc<PipelineLayout>) {
         let vs = vs.entry_point("main").unwrap();
         let fs = fs.entry_point("main").unwrap();
-    
+
         let vertex_input_state = MyVertex::per_vertex()
             .definition(&vs.info().input_interface)
             .unwrap();
-    
+
         let stages = [
             PipelineShaderStageCreateInfo::new(vs),
             PipelineShaderStageCreateInfo::new(fs),
         ];
-            
+
         let layout = PipelineLayout::new(
             device.clone(),
             PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
@@ -97,9 +100,9 @@ impl PreRenderer {
                 .unwrap(),
         )
         .unwrap();
-    
+
         let subpass = Subpass::from(render_pass.clone(), 0).unwrap();
-    
+
         let graphics_pipeline = GraphicsPipeline::new(
             device.clone(),
             None,
