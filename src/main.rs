@@ -1,11 +1,15 @@
 mod camera;
 mod device;
+mod keyboard;
+mod mover;
 mod object;
 mod prerender;
 mod renderer;
 mod shaders;
 
+use core::time;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use glam::Vec3;
 use vulkano::buffer::BufferContents;
@@ -17,7 +21,7 @@ use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::{self, GpuFuture};
 use vulkano::{Validated, VulkanError};
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 
 // ORDEM DA CRIAÇÃO DE OBJETOS
@@ -251,9 +255,11 @@ fn main() {
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
-    let mut count = 0.0;
+    let mut inputs = keyboard::Keyboard::default();
 
     let mut camera = camera::Camera::default();
+    let mut camera_object = object::Object::default();
+    let camera_controller = mover::Mover::default();
 
     // 0.87266462599716 = 50 graus
     camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
@@ -261,23 +267,25 @@ fn main() {
     //camera.orthographic_view(1.0, -1.0, -1.0, 1.0, -1.0, 1.0);
 
     //camera.setViewDirection(Vec3::from_array([0.0, 0.0, 0.0]), Vec3::from_array([0.5, 0.0, 1.0]), Vec3::from_array([0.0, -1.0, 0.0]));
-    camera.setViewTarget(
+    camera.set_view_target(
         Vec3::from_array([-1.0, -2.0, -20.0]),
         Vec3::from_array([0.0, 0.0, 2.5]),
         Vec3::from_array([0.0, -1.0, 0.0]),
     );
 
+    let mut delta_time = 0.0;
     event_loop.run(move |event, _, control_flow| match event {
-        Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } => {
-            *control_flow = ControlFlow::Exit;
-        }
+        Event::WindowEvent { event, .. } => match event {
+            WindowEvent::CloseRequested => *control_flow = winit::event_loop::ControlFlow::Exit,
+            WindowEvent::KeyboardInput { input, .. } => inputs.keyboard_events(input),
+            _ => (),
+        },
         Event::MainEventsCleared => {
-            count += 0.01;
+            let frame_time = std::time::Instant::now();
 
-            object.rotation = Vec3::from_array([count / 5.0, count, 0.0]);
+            camera_controller.movement(delta_time, &mut camera_object, &inputs);
+
+            camera.set_view_yxz(camera_object.translation, camera_object.rotation);
 
             let uniform = shaders::vs::Data {
                 transform: object.calculate_matrix(),
@@ -347,6 +355,8 @@ fn main() {
             };
 
             previous_fence_i = image_i;
+
+            delta_time = frame_time.elapsed().as_secs_f32();
         }
         _ => (),
     });

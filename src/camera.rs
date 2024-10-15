@@ -15,36 +15,24 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn setViewDirection(&mut self, position: Vec3, direction: Vec3, up: Vec3) {
+    pub fn set_view_direction(&mut self, position: Vec3, direction: Vec3, up: Vec3) {
         let w = direction.normalize();
         let u = w.cross(up).normalize();
         let v = w.cross(u);
 
-        self.view = Mat4::from_cols_array(&[
-            u.x,
-            v.x,
-            w.x,
-            0.0,
-            u.y,
-            v.y,
-            w.y,
-            0.0,
-            u.z,
-            v.z,
-            w.z,
-            0.0,
-            -u.dot(position),
-            -v.dot(position),
-            -w.dot(position),
-            1.0,
-        ]);
+        self.view = Mat4::from_cols(
+            [u.x, v.x, w.x, 0.0].into(),
+            [u.y, v.y, w.y, 0.0].into(),
+            [u.z, v.z, w.z, 0.0].into(),
+            [-u.dot(position), -v.dot(position), -w.dot(position), 1.0].into(),
+        );
     }
 
-    pub fn setViewTarget(&mut self, position: Vec3, target: Vec3, up: Vec3) {
-        Self::setViewDirection(self, position, target - position, up);
+    pub fn set_view_target(&mut self, position: Vec3, target: Vec3, up: Vec3) {
+        Self::set_view_direction(self, position, target - position, up);
     }
 
-    pub fn setViewYXZ(&mut self, position: Vec3, rotation: Vec3) {
+    pub fn set_view_yxz(&mut self, position: Vec3, rotation: Vec3) {
         let c3 = f32::cos(rotation.z);
         let s3 = f32::sin(rotation.z);
         let c2 = f32::cos(rotation.x);
@@ -64,24 +52,12 @@ impl Camera {
         ]);
         let w = Vec3::from_array([(c2 * s1), (-s2), (c1 * c2)]);
 
-        self.view = Mat4::from_cols_array(&[
-            u.x,
-            u.y,
-            u.z,
-            0.0,
-            v.x,
-            v.y,
-            v.z,
-            0.0,
-            w.x,
-            w.y,
-            w.z,
-            0.0,
-            -u.dot(position),
-            -v.dot(position),
-            -w.dot(position),
-            1.0,
-        ]);
+        self.view = Mat4::from_cols(
+            [u.x, v.x, w.x, 0.0].into(),
+            [u.y, v.y, w.y, 0.0].into(),
+            [u.z, v.z, w.z, 0.0].into(),
+            [-u.dot(position), -v.dot(position), -w.dot(position), 1.0].into(),
+        );
     }
 
     pub fn orthographic_view(

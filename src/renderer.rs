@@ -4,8 +4,6 @@ use std::sync::Arc;
 
 use vulkano::buffer::allocator::SubbufferAllocator;
 use vulkano::buffer::allocator::SubbufferAllocatorCreateInfo;
-use vulkano::buffer::Buffer;
-use vulkano::buffer::BufferCreateInfo;
 use vulkano::buffer::BufferUsage;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::PersistentDescriptorSet;

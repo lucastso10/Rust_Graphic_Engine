@@ -9,15 +9,19 @@ pub struct Object {
     pub rotation: Vec3,
 }
 
+impl Default for Object {
+    fn default() -> Self {
+        Object {
+            translation: Vec3::ZERO,
+            scale: Vec3::ONE,
+            rotation: Vec3::ZERO,
+        }
+    }
+}
+
 impl Object {
-    pub fn new(
-        translation: Vec3,
-        scale: Vec3,
-        rotation: Vec3,
-        //model: Vec<MyVertex>,
-    ) -> Self {
+    pub fn new(translation: Vec3, scale: Vec3, rotation: Vec3) -> Self {
         Self {
-            //model,
             translation,
             scale,
             rotation,

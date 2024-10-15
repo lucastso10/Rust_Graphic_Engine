@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use vulkano::{
     buffer::{Buffer, BufferCreateInfo, BufferUsage, Subbuffer},
-    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator},
+    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
     pipeline::{
         graphics::{
             color_blend::{ColorBlendAttachmentState, ColorBlendState},
