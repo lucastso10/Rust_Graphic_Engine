@@ -1,67 +1,55 @@
-mod shaders;
+mod camera;
 mod device;
+mod keyboard;
+mod mover;
+mod object;
+mod prerender;
 mod renderer;
+mod shaders;
 
+use core::time;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
-use vulkano::buffer::{Buffer, BufferContents, BufferCreateInfo, BufferUsage, Subbuffer};
-use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
-use vulkano::command_buffer::{
-    AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer, RenderPassBeginInfo,
-    SubpassBeginInfo, SubpassContents,
-};
-use vulkano::device::{
-    Device, DeviceExtensions, Queue,
-};
+use glam::Vec3;
+use vulkano::buffer::BufferContents;
+use vulkano::device::DeviceExtensions;
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
-use vulkano::pipeline::graphics::color_blend::{ColorBlendAttachmentState, ColorBlendState};
-use vulkano::pipeline::graphics::input_assembly::InputAssemblyState;
-use vulkano::pipeline::graphics::multisample::MultisampleState;
-use vulkano::pipeline::graphics::rasterization::RasterizationState;
-use vulkano::pipeline::graphics::vertex_input::{Vertex, VertexDefinition};
-use vulkano::pipeline::graphics::viewport::{Viewport, ViewportState};
-use vulkano::pipeline::graphics::GraphicsPipelineCreateInfo;
-use vulkano::pipeline::layout::PipelineDescriptorSetLayoutCreateInfo;
-use vulkano::pipeline::{GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo};
-use vulkano::render_pass::{Framebuffer, RenderPass, Subpass};
-use vulkano::shader::ShaderModule;
+use vulkano::pipeline::graphics::vertex_input::Vertex;
 use vulkano::swapchain::{self, Surface, SwapchainPresentInfo};
 use vulkano::sync::future::FenceSignalFuture;
 use vulkano::sync::{self, GpuFuture};
 use vulkano::{Validated, VulkanError};
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 
-
 // ORDEM DA CRIAÇÃO DE OBJETOS
-    // instance
+// instance
 
-    // surface
+// surface
 
-    // GPU { physical device, logical device, queue creation }
+// GPU { physical device, logical device, queue creation }
+// Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
+// vertex buffer
+// shaders
+// pipeline
 
-    // Renderer { swapchain, RenderPass, Framebuffers, viewport }
-    // vertex buffer
-    // shaders
-    // pipeline
-    // command buffers
-
-    // event loop
+// event loop
 
 #[derive(BufferContents, Vertex)]
 #[repr(C)]
-struct MyVertex {
-    #[format(R32G32_SFLOAT)]
-    position: [f32; 2],
+pub struct MyVertex {
+    #[format(R32G32B32_SFLOAT)]
+    position: [f32; 3],
     #[name("inColor")]
     #[format(R32G32B32_SFLOAT)]
     color: [f32; 3],
 }
 
 fn main() {
-    let library = vulkano::VulkanLibrary::new().expect("no local Vulkan library/DLL. Did you install Vulkan?");
+    let library = vulkano::VulkanLibrary::new()
+        .expect("no local Vulkan library/DLL. Did you install Vulkan?");
     let event_loop = EventLoop::new();
 
     // instância da vulkan
@@ -76,10 +64,11 @@ fn main() {
     )
     .expect("failed to create instance");
 
-    let window = Arc::new(WindowBuilder::new()
-        .with_resizable(false)
-        .build(&event_loop)
-        .expect("Failed to create window")
+    let window = Arc::new(
+        WindowBuilder::new()
+            .with_resizable(false)
+            .build(&event_loop)
+            .expect("Failed to create window"),
     );
 
     // superficie que o vulkan leva em cosideração para desenhar a imagem
@@ -91,102 +80,225 @@ fn main() {
         DeviceExtensions {
             khr_swapchain: true,
             ..DeviceExtensions::empty()
-        }, 
-        &instance, 
-        &surface
+        },
+        &instance,
+        &surface,
     );
 
-    // Renderer { swapchain, RenderPass, Framebuffers, viewport }
-    let renderer = renderer::Renderer::new(
-        &device, 
-        surface.clone(), 
-        window.inner_size(),
+    // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
+    let renderer = renderer::Renderer::new(&device, surface.clone(), window.inner_size());
+
+    let cubo_vertexes = vec![
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.9, 0.9, 0.9],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.9, 0.6, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.8, 0.1, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [0.5, -0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [0.5, 0.5, 0.5],
+            color: [0.1, 0.1, 0.8],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, 0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [-0.5, -0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, -0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+        MyVertex {
+            position: [0.5, 0.5, -0.5],
+            color: [0.1, 0.8, 0.1],
+        },
+    ];
+
+    let mut object = object::Object::new(
+        Vec3::from_array([0.0, 0.0, 2.5]),
+        Vec3::from_array([0.5, 0.5, 0.5]),
+        Vec3::from_array([0.0, 0.0, 0.0]),
     );
 
-    let memory_allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
-
-    let vertex1 = MyVertex {
-        position: [0.0, -0.5],
-        color: [1.0, 0.0, 0.0],
-    };
-    let vertex2 = MyVertex {
-        position: [0.5, 0.5],
-        color: [0.0, 1.0, 0.0],
-    };
-    let vertex3 = MyVertex {
-        position: [-0.5, 0.5],
-        color: [0.0, 0.0, 1.0],
-    };
-
-
-    // cria os vertex que serão exibidos na tela
-    //
-    // vertex buffer
-    let vertex_buffer = Buffer::from_iter(
-        memory_allocator,
-        BufferCreateInfo {
-            usage: BufferUsage::VERTEX_BUFFER,
-            ..Default::default()
-        },
-        AllocationCreateInfo {
-            memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
-                | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-            ..Default::default()
-        },
-        vec![vertex1, vertex2, vertex3],
-    )
-    .unwrap();
-
-    // carrega os shaders que serão utilizados na renderização
-    //
-    // shaders
-    let vs = shaders::vs::load(device.clone()).expect("failed to create shader module");
-    let fs = shaders::fs::load(device.clone()).expect("failed to create shader module");
+    let prerender = prerender::PreRenderer::new(
+        &device,
+        cubo_vertexes,
+        &renderer.render_pass,
+        &renderer.viewport,
+    );
 
     // declara a pipeline final do programa
     //
     // pipeline
-    let pipeline = get_pipeline(
-        device.clone(),
-        vs.clone(),
-        fs.clone(),
-        renderer.render_pass.clone(),
-        renderer.viewport.clone(),
-    );
-
-    // command buffers são buffers de comandos que serão executados
-    // pela GPU, como o envio de comandos para a GPU pode ser lento
-    // vale a pena juntarmos esses comandos em um buffer e enviar
-    // um pacote só.
-    // 
-    // command buffers
-    let command_buffer_allocator =
-        StandardCommandBufferAllocator::new(device.clone(), Default::default());
-
-    let command_buffers = get_command_buffers(
-        &command_buffer_allocator,
-        &device.graphics_queue,
-        &pipeline,
-        &renderer.framebuffers,
-        &vertex_buffer,
-    );
-
-    // aqui começa o loop de execução do programa
-    //
-    // event loop
-
     let frames_in_flight = usize::try_from(renderer.swapchain.image_count()).unwrap();
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
+    let mut inputs = keyboard::Keyboard::default();
+
+    let mut camera = camera::Camera::default();
+    let mut camera_object = object::Object::default();
+    let camera_controller = mover::Mover::default();
+
+    // 0.87266462599716 = 50 graus
+    camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
+
+    //camera.orthographic_view(1.0, -1.0, -1.0, 1.0, -1.0, 1.0);
+
+    //camera.setViewDirection(Vec3::from_array([0.0, 0.0, 0.0]), Vec3::from_array([0.5, 0.0, 1.0]), Vec3::from_array([0.0, -1.0, 0.0]));
+    camera.set_view_target(
+        Vec3::from_array([-1.0, -2.0, -20.0]),
+        Vec3::from_array([0.0, 0.0, 2.5]),
+        Vec3::from_array([0.0, -1.0, 0.0]),
+    );
+
+    let mut delta_time = 0.0;
     event_loop.run(move |event, _, control_flow| match event {
-        Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } => {
-            *control_flow = ControlFlow::Exit;
-        }
+        Event::WindowEvent { event, .. } => match event {
+            WindowEvent::CloseRequested => *control_flow = winit::event_loop::ControlFlow::Exit,
+            WindowEvent::KeyboardInput { input, .. } => inputs.keyboard_events(input),
+            _ => (),
+        },
         Event::MainEventsCleared => {
+            let frame_time = std::time::Instant::now();
+
+            camera_controller.movement(delta_time, &mut camera_object, &inputs);
+
+            camera.set_view_yxz(camera_object.translation, camera_object.rotation);
+
+            let uniform = shaders::vs::Data {
+                transform: object.calculate_matrix(),
+                camera: (camera.projection * camera.view).to_cols_array_2d(),
+            };
+
+            let command_buffer = renderer.create_command_buffer(
+                &device.graphics_queue,
+                &prerender.pipeline,
+                &prerender.layout,
+                &prerender.vertex_buffer,
+                &uniform,
+            );
             // aqui começamos a renderizar a próxima imagem
             let (image_i, _suboptimal, acquire_future) =
                 match swapchain::acquire_next_image(renderer.swapchain.clone(), None)
@@ -219,19 +331,23 @@ fn main() {
 
             let future = previous_future
                 .join(acquire_future)
-                .then_execute(device.graphics_queue.clone(), command_buffers[image_i as usize].clone())
+                .then_execute(
+                    device.graphics_queue.clone(),
+                    command_buffer[image_i as usize].clone(),
+                )
                 .unwrap()
                 .then_swapchain_present(
                     device.graphics_queue.clone(),
-                    SwapchainPresentInfo::swapchain_image_index(renderer.swapchain.clone(), image_i),
+                    SwapchainPresentInfo::swapchain_image_index(
+                        renderer.swapchain.clone(),
+                        image_i,
+                    ),
                 )
                 .then_signal_fence_and_flush();
 
             fences[image_i as usize] = match future.map_err(Validated::unwrap) {
                 Ok(value) => Some(Arc::new(value)),
-                Err(VulkanError::OutOfDate) => {
-                    None
-                }
+                Err(VulkanError::OutOfDate) => None,
                 Err(e) => {
                     println!("failed to flush future: {e}");
                     None
@@ -239,103 +355,9 @@ fn main() {
             };
 
             previous_fence_i = image_i;
+
+            delta_time = frame_time.elapsed().as_secs_f32();
         }
         _ => (),
     });
-}
-
-fn get_pipeline(
-    device: Arc<Device>,
-    vs: Arc<ShaderModule>,
-    fs: Arc<ShaderModule>,
-    render_pass: Arc<RenderPass>,
-    viewport: Viewport,
-) -> Arc<GraphicsPipeline> {
-    let vs = vs.entry_point("main").unwrap();
-    let fs = fs.entry_point("main").unwrap();
-
-    let vertex_input_state = MyVertex::per_vertex()
-        .definition(&vs.info().input_interface)
-        .unwrap();
-
-    let stages = [
-        PipelineShaderStageCreateInfo::new(vs),
-        PipelineShaderStageCreateInfo::new(fs),
-    ];
-
-    let layout = PipelineLayout::new(
-        device.clone(),
-        PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
-            .into_pipeline_layout_create_info(device.clone())
-            .unwrap(),
-    )
-    .unwrap();
-
-    let subpass = Subpass::from(render_pass.clone(), 0).unwrap();
-
-    GraphicsPipeline::new(
-        device.clone(),
-        None,
-        GraphicsPipelineCreateInfo {
-            stages: stages.into_iter().collect(),
-            vertex_input_state: Some(vertex_input_state),
-            input_assembly_state: Some(InputAssemblyState::default()),
-            viewport_state: Some(ViewportState {
-                viewports: [viewport].into_iter().collect(),
-                ..Default::default()
-            }),
-            rasterization_state: Some(RasterizationState::default()),
-            multisample_state: Some(MultisampleState::default()),
-            color_blend_state: Some(ColorBlendState::with_attachment_states(
-                subpass.num_color_attachments(),
-                ColorBlendAttachmentState::default(),
-            )),
-            subpass: Some(subpass.into()),
-            ..GraphicsPipelineCreateInfo::layout(layout)
-        },
-    )
-    .unwrap()
-}
-
-fn get_command_buffers(
-    command_buffer_allocator: &StandardCommandBufferAllocator,
-    queue: &Arc<Queue>,
-    pipeline: &Arc<GraphicsPipeline>,
-    framebuffers: &[Arc<Framebuffer>],
-    vertex_buffer: &Subbuffer<[MyVertex]>,
-) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
-    framebuffers
-        .iter()
-        .map(|framebuffer| {
-            let mut builder = AutoCommandBufferBuilder::primary(
-                command_buffer_allocator,
-                queue.queue_family_index(),
-                CommandBufferUsage::MultipleSubmit,
-            )
-            .unwrap();
-
-            builder
-                .begin_render_pass(
-                    RenderPassBeginInfo {
-                        clear_values: vec![Some([0.0, 0.0, 0.0, 1.0].into())],
-                        ..RenderPassBeginInfo::framebuffer(framebuffer.clone())
-                    },
-                    SubpassBeginInfo {
-                        contents: SubpassContents::Inline,
-                        ..Default::default()
-                    },
-                )
-                .unwrap()
-                .bind_pipeline_graphics(pipeline.clone())
-                .unwrap()
-                .bind_vertex_buffers(0, vertex_buffer.clone())
-                .unwrap()
-                .draw(vertex_buffer.len() as u32, 1, 0, 0)
-                .unwrap()
-                .end_render_pass(Default::default())
-                .unwrap();
-
-            builder.build().unwrap()
-        })
-        .collect()
 }
