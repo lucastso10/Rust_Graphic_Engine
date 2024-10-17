@@ -6,12 +6,10 @@ pkgs.mkShell {
     rustfmt       # Formatter
     cargo
     rustc
-    vulkan-tools
-    vulkan-loader
+    #vulkan-loader
     vulkan-validation-layers
     cmake
     ninja
-    python3
     wayland
     libxkbcommon
     libGL

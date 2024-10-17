@@ -7,9 +7,8 @@ mod prerender;
 mod renderer;
 mod shaders;
 
-use core::time;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use glam::Vec3;
 use vulkano::buffer::BufferContents;
@@ -281,7 +280,7 @@ fn main() {
             _ => (),
         },
         Event::MainEventsCleared => {
-            let frame_time = std::time::Instant::now();
+            let frame_time = Instant::now();
 
             camera_controller.movement(delta_time, &mut camera_object, &inputs);
 
