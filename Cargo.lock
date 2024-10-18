@@ -859,6 +859,7 @@ name = "rust_engine"
 version = "0.1.0"
 dependencies = [
  "glam",
+ "tobj",
  "vulkano",
  "vulkano-shaders",
  "winit",
@@ -1075,6 +1076,15 @@ dependencies = [
  "arrayref",
  "bytemuck",
  "strict-num",
+]
+
+[[package]]
+name = "tobj"
+version = "4.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3bd4ba05f29e4c65b6c0c11a58b6465ffa820bac890d76ad407b4e81d8372e8"
+dependencies = [
+ "ahash",
 ]
 
 [[package]]

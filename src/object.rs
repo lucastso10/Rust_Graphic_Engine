@@ -12,7 +12,8 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(vertices: Vec<MyVertex>, indices: Vec<u16>) -> Object {
+    pub fn new(file_name: &str) -> Object {
+        let (models, _materials) = tobj::load_obj(file_name, &tobj::LoadOptions::default()).expect("Failed to load obj!");
         let model = Model {
             vertices,
             indices,

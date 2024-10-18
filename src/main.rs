@@ -264,9 +264,6 @@ fn main() {
     // 0.87266462599716 = 50 graus
     camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
 
-    //camera.orthographic_view(1.0, -1.0, -1.0, 1.0, -1.0, 1.0);
-
-    //camera.setViewDirection(Vec3::from_array([0.0, 0.0, 0.0]), Vec3::from_array([0.5, 0.0, 1.0]), Vec3::from_array([0.0, -1.0, 0.0]));
     camera.set_view_target(
         Vec3::from_array([0.0, 0.0, -10.0]),
         Vec3::from_array([0.0, 0.0, 2.5]),
