@@ -1,30 +1,27 @@
-//use crate::MyVertex;
 
 use glam::f32::{Mat4, Vec3};
+
+use crate::MyVertex;
 
 pub struct Object {
     //pub model: Vec<MyVertex>,
     pub translation: Vec3,
     pub scale: Vec3,
     pub rotation: Vec3,
-}
-
-impl Default for Object {
-    fn default() -> Self {
-        Object {
-            translation: Vec3::ZERO,
-            scale: Vec3::ONE,
-            rotation: Vec3::ZERO,
-        }
-    }
+    pub model: Model,
 }
 
 impl Object {
-    pub fn new(translation: Vec3, scale: Vec3, rotation: Vec3) -> Self {
+    pub fn new(vertices: Vec<MyVertex>, indices: Vec<u16>) -> Object {
+        let model = Model {
+            vertices,
+            indices,
+        };
         Self {
-            translation,
-            scale,
-            rotation,
+            translation: Vec3::ZERO,
+            scale: Vec3::ONE,
+            rotation: Vec3::ZERO,
+            model,
         }
     }
 
@@ -54,5 +51,19 @@ impl Object {
             1.0,
         ])
         .to_cols_array_2d()
+    }
+}
+
+pub struct Model {
+    pub vertices: Vec<MyVertex>,
+    pub indices: Vec<u16>,
+}
+
+impl Clone for Model {
+    fn clone(&self) -> Self {
+        Model {
+            vertices: self.vertices.clone(),
+            indices: self.indices.clone(),
+        }
     }
 }

@@ -36,7 +36,7 @@ use winit::window::WindowBuilder;
 
 // event loop
 
-#[derive(BufferContents, Vertex)]
+#[derive(BufferContents, Vertex, Clone)]
 #[repr(C)]
 pub struct MyVertex {
     #[format(R32G32B32_SFLOAT)]
@@ -234,15 +234,16 @@ fn main() {
         },
     ];
 
-    let mut object = object::Object::new(
-        Vec3::from_array([0.0, 0.0, 2.5]),
-        Vec3::from_array([0.5, 0.5, 0.5]),
-        Vec3::from_array([0.0, 0.0, 0.0]),
-    );
+    let indices = vec![0,  1,  2,  0,  3,  1,  4,  5,  6,  4,  7,  5,  8,  9,  10, 8,  11, 9,
+                        12, 13, 14, 12, 15, 13, 16, 17, 18, 16, 19, 17, 20, 21, 22, 20, 23, 21];
+
+    let mut object = object::Object::new(cubo_vertexes, indices);
+
+    object.translation = Vec3::from_array([0.0, 0.0, 10.0]);
 
     let prerender = prerender::PreRenderer::new(
         &device,
-        cubo_vertexes,
+        &object,
         &renderer.render_pass,
         &renderer.viewport,
     );
@@ -257,8 +258,8 @@ fn main() {
     let mut inputs = keyboard::Keyboard::default();
 
     let mut camera = camera::Camera::default();
-    let mut camera_object = object::Object::default();
-    let camera_controller = mover::Mover::default();
+    // let mut camera_object = object::Object::new();
+    //let camera_controller = mover::Mover::default();
 
     // 0.87266462599716 = 50 graus
     camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
@@ -267,7 +268,7 @@ fn main() {
 
     //camera.setViewDirection(Vec3::from_array([0.0, 0.0, 0.0]), Vec3::from_array([0.5, 0.0, 1.0]), Vec3::from_array([0.0, -1.0, 0.0]));
     camera.set_view_target(
-        Vec3::from_array([-1.0, -2.0, -20.0]),
+        Vec3::from_array([0.0, 0.0, -10.0]),
         Vec3::from_array([0.0, 0.0, 2.5]),
         Vec3::from_array([0.0, -1.0, 0.0]),
     );
@@ -282,9 +283,7 @@ fn main() {
         Event::MainEventsCleared => {
             let frame_time = Instant::now();
 
-            camera_controller.movement(delta_time, &mut camera_object, &inputs);
-
-            camera.set_view_yxz(camera_object.translation, camera_object.rotation);
+            camera.move_camera(delta_time, &inputs);
 
             let uniform = shaders::vs::Data {
                 transform: object.calculate_matrix(),
@@ -293,11 +292,10 @@ fn main() {
 
             let command_buffer = renderer.create_command_buffer(
                 &device.graphics_queue,
-                &prerender.pipeline,
-                &prerender.layout,
-                &prerender.vertex_buffer,
+                &prerender,
                 &uniform,
             );
+
             // aqui começamos a renderizar a próxima imagem
             let (image_i, _suboptimal, acquire_future) =
                 match swapchain::acquire_next_image(renderer.swapchain.clone(), None)
