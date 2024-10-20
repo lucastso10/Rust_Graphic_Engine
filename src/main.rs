@@ -41,9 +41,13 @@ use winit::window::WindowBuilder;
 pub struct MyVertex {
     #[format(R32G32B32_SFLOAT)]
     position: [f32; 3],
-    #[name("inColor")]
+    #[name("color")]
     #[format(R32G32B32_SFLOAT)]
     color: [f32; 3],
+    #[format(R32G32B32_SFLOAT)]
+    normal: [f32; 3],
+    #[format(R32G32_SFLOAT)]
+    texcoord: [f32; 2],
 }
 
 fn main() {
@@ -87,7 +91,7 @@ fn main() {
     // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     let renderer = renderer::Renderer::new(&device, surface.clone(), window.inner_size());
 
-    let mut object = object::Object::new("obj/flat_vase.obj");
+    let mut object = object::Object::new("obj/vase.obj");
 
     object.translation = Vec3::from_array([0.0, 0.0, 2.0]);
     object.scale = Vec3::from_array([1.5, 1.5, 1.5]);
@@ -119,8 +123,8 @@ fn main() {
             camera.move_camera(delta_time, &inputs);
 
             let uniform = shaders::vs::Data {
-                transform: object.calculate_matrix(),
                 camera: (camera.projection * camera.view).to_cols_array_2d(),
+                modelMatrix: object.calculate_matrix(),
             };
 
             let command_buffer = renderer.create_command_buffer(

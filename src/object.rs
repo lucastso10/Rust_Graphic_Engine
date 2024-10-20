@@ -23,7 +23,9 @@ impl Object {
             let index = mesh.indices[i] as usize;
             let vertex = MyVertex {
                 position: [mesh.positions[index * 3], mesh.positions[index * 3 + 1], mesh.positions[index * 3 + 2]],
-                color: [0.5, 0.5, 0.5] 
+                color: [0.5, 0.5, 0.5],
+                normal: [mesh.normals[index * 3], mesh.normals[index * 3 + 1], mesh.normals[index * 3 + 2]],
+                texcoord: [mesh.texcoords[index * 2], mesh.texcoords[index * 2 + 1]],
             };
 
             if vertices.contains(&vertex) {
