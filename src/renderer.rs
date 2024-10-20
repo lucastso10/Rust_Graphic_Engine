@@ -1,12 +1,10 @@
 use crate::prerender::PreRenderer;
 use crate::shaders;
-use crate::MyVertex;
 use std::sync::Arc;
 
 use vulkano::buffer::allocator::SubbufferAllocator;
 use vulkano::buffer::allocator::SubbufferAllocatorCreateInfo;
 use vulkano::buffer::BufferUsage;
-use vulkano::command_buffer::CopyBufferInfo;
 use vulkano::descriptor_set::allocator::StandardDescriptorSetAllocator;
 use vulkano::descriptor_set::PersistentDescriptorSet;
 use vulkano::descriptor_set::WriteDescriptorSet;

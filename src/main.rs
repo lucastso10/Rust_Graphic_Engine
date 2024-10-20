@@ -36,7 +36,7 @@ use winit::window::WindowBuilder;
 
 // event loop
 
-#[derive(BufferContents, Vertex, Clone)]
+#[derive(BufferContents, Vertex, Clone, PartialEq)]
 #[repr(C)]
 pub struct MyVertex {
     #[format(R32G32B32_SFLOAT)]
@@ -87,159 +87,10 @@ fn main() {
     // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     let renderer = renderer::Renderer::new(&device, surface.clone(), window.inner_size());
 
-    let cubo_vertexes = vec![
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-    ];
+    let mut object = object::Object::new("/home/bolofofo/Documents/facul/Rust_Graphic_Engine/obj/colored_cube.obj");
 
-    let indices = vec![0,  1,  2,  0,  3,  1,  4,  5,  6,  4,  7,  5,  8,  9,  10, 8,  11, 9,
-                        12, 13, 14, 12, 15, 13, 16, 17, 18, 16, 19, 17, 20, 21, 22, 20, 23, 21];
-
-    let mut object = object::Object::new(cubo_vertexes, indices);
-
-    object.translation = Vec3::from_array([0.0, 0.0, 10.0]);
+    object.translation = Vec3::from_array([0.0, 0.0, 5.0]);
+    object.scale = Vec3::from_array([1.5, 1.5, 1.5]);
 
     let prerender = prerender::PreRenderer::new(
         &device,

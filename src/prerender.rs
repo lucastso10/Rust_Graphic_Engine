@@ -26,7 +26,7 @@ use crate::{device::GPU, object::Object, shaders, MyVertex};
 pub struct PreRenderer {
     //memory_allocator: Arc<StandardMemoryAllocator>,
     pub vertex_buffer: Subbuffer<[MyVertex]>,
-    pub indices_buffer: Subbuffer<[u16]>,
+    pub indices_buffer: Subbuffer<[u32]>,
     //vs: Arc<ShaderModule>,
     //fs: Arc<ShaderModule>,
     pub pipeline: Arc<GraphicsPipeline>,

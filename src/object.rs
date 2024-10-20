@@ -1,4 +1,3 @@
-
 use glam::f32::{Mat4, Vec3};
 
 use crate::MyVertex;
@@ -13,7 +12,30 @@ pub struct Object {
 
 impl Object {
     pub fn new(file_name: &str) -> Object {
-        let (models, _materials) = tobj::load_obj(file_name, &tobj::LoadOptions::default()).expect("Failed to load obj!");
+        let (models, _materials) = tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Failed to load obj!");
+
+        // suporte para apenas um modelo no arquivo
+        let mesh = &models[0].mesh;
+
+        let mut vertices: Vec<MyVertex> = vec![];
+        let mut indices: Vec<u32> = vec![];
+        for i in 0..mesh.indices.len() { 
+            let index = mesh.indices[i] as usize;
+            let vertex = MyVertex {
+                position: [mesh.positions[index * 3], mesh.positions[index * 3 + 1], mesh.positions[index * 3 + 2]],
+                color: [0.5, 0.5, 0.5] 
+            };
+
+            if vertices.contains(&vertex) {
+                indices.push(vertices.iter().position(|r| *r == vertex).unwrap().try_into().unwrap());
+            } else {
+                println!("[{}, {}, {}]", mesh.positions[index * 3], mesh.positions[index * 3 + 1], mesh.positions[index * 3 + 2]);
+                vertices.push(vertex.clone());
+                indices.push(vertices.iter().position(|r| *r == vertex).unwrap().try_into().unwrap());
+            }
+        }
+
+        println!("{:?}", indices);
         let model = Model {
             vertices,
             indices,
@@ -57,7 +79,7 @@ impl Object {
 
 pub struct Model {
     pub vertices: Vec<MyVertex>,
-    pub indices: Vec<u16>,
+    pub indices: Vec<u32>,
 }
 
 impl Clone for Model {
