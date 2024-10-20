@@ -87,9 +87,9 @@ fn main() {
     // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     let renderer = renderer::Renderer::new(&device, surface.clone(), window.inner_size());
 
-    let mut object = object::Object::new("/home/bolofofo/Documents/facul/Rust_Graphic_Engine/obj/colored_cube.obj");
+    let mut object = object::Object::new("obj/flat_vase.obj");
 
-    object.translation = Vec3::from_array([0.0, 0.0, 5.0]);
+    object.translation = Vec3::from_array([0.0, 0.0, 2.0]);
     object.scale = Vec3::from_array([1.5, 1.5, 1.5]);
 
     let prerender = prerender::PreRenderer::new(
@@ -99,27 +99,12 @@ fn main() {
         &renderer.viewport,
     );
 
-    // declara a pipeline final do programa
-    //
-    // pipeline
     let frames_in_flight = usize::try_from(renderer.swapchain.image_count()).unwrap();
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
     let mut inputs = keyboard::Keyboard::default();
-
-    let mut camera = camera::Camera::default();
-    // let mut camera_object = object::Object::new();
-    //let camera_controller = mover::Mover::default();
-
-    // 0.87266462599716 = 50 graus
-    camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
-
-    camera.set_view_target(
-        Vec3::from_array([0.0, 0.0, -10.0]),
-        Vec3::from_array([0.0, 0.0, 2.5]),
-        Vec3::from_array([0.0, -1.0, 0.0]),
-    );
+    let mut camera = camera::Camera::new(renderer.get_aspect_ratio());
 
     let mut delta_time = 0.0;
     event_loop.run(move |event, _, control_flow| match event {

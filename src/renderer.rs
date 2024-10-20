@@ -270,7 +270,7 @@ impl Renderer {
                         descriptor_set.clone(),
                     )
                     .unwrap()
-                    .draw(prerender.vertex_buffer.len() as u32, 1, 0, 0)
+                    .draw_indexed(prerender.indices_buffer.len() as u32, 1, 0, 0, 0)
                     .unwrap()
                     .end_render_pass(Default::default())
                     .unwrap();

@@ -29,13 +29,11 @@ impl Object {
             if vertices.contains(&vertex) {
                 indices.push(vertices.iter().position(|r| *r == vertex).unwrap().try_into().unwrap());
             } else {
-                println!("[{}, {}, {}]", mesh.positions[index * 3], mesh.positions[index * 3 + 1], mesh.positions[index * 3 + 2]);
                 vertices.push(vertex.clone());
                 indices.push(vertices.iter().position(|r| *r == vertex).unwrap().try_into().unwrap());
             }
         }
 
-        println!("{:?}", indices);
         let model = Model {
             vertices,
             indices,

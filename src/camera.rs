@@ -11,20 +11,26 @@ pub struct Camera {
     look_speed: f32,
 }
 
-impl Default for Camera {
-    fn default() -> Camera {
-        Camera {
+impl Camera {
+    pub fn new(aspect_ratio: f32) -> Camera {
+        let mut camera = Camera {
             projection: Mat4::IDENTITY,
             view: Mat4::IDENTITY,
             translation: Vec3::ZERO,
             rotation: Vec3::ZERO,
             move_speed: 3.0,
             look_speed: 1.5,
-        }
-    }
-}
+        };
+        // 0.87266462599716 = 50 graus
+        camera.perspective_view(0.87266462599716, aspect_ratio, 0.1, 100.0);
 
-impl Camera {
+        camera.set_view_target(
+            Vec3::from_array([0.0, 0.0, -10.0]),
+            Vec3::from_array([0.0, 0.0, 2.5]),
+            Vec3::from_array([0.0, -1.0, 0.0]),
+        );
+        camera
+    }
     pub fn set_view_direction(&mut self, position: Vec3, direction: Vec3, up: Vec3) {
         let w = direction.normalize();
         let u = w.cross(up).normalize();

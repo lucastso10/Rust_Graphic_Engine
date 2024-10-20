@@ -7,7 +7,7 @@ pkgs.mkShell {
     cargo
     rustc
     #vulkan-loader
-    vulkan-validation-layers
+    #vulkan-validation-layers
     cmake
     ninja
     wayland
