@@ -19,7 +19,7 @@ use vulkano::{
     format::Format,
     image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
-    pipeline::{graphics::viewport::Viewport, GraphicsPipeline, PipelineLayout},
+    pipeline::graphics::viewport::Viewport,
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
     swapchain::{ColorSpace, Surface, SurfaceCapabilities, Swapchain, SwapchainCreateInfo},
 };

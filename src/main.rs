@@ -1,7 +1,6 @@
 mod camera;
 mod device;
 mod keyboard;
-mod mover;
 mod object;
 mod prerender;
 mod renderer;
@@ -93,7 +92,7 @@ fn main() {
 
     let mut object = object::Object::new("obj/vase.obj");
 
-    object.translation = Vec3::from_array([0.0, 0.0, 2.0]);
+    object.translation = Vec3::from_array([0.0, 0.5, 0.0]);
     object.scale = Vec3::from_array([1.5, 1.5, 1.5]);
 
     let prerender = prerender::PreRenderer::new(
@@ -108,7 +107,11 @@ fn main() {
     let mut previous_fence_i = 0;
 
     let mut inputs = keyboard::Keyboard::default();
-    let mut camera = camera::Camera::new(renderer.get_aspect_ratio());
+    let mut camera = camera::Camera::new(
+            renderer.get_aspect_ratio(),
+            Vec3::from_array([0.0, 0.0, -3.0]),
+            Vec3::from_array([0.0, 0.0, 0.0])
+        );
 
     let mut delta_time = 0.0;
     event_loop.run(move |event, _, control_flow| match event {
@@ -120,7 +123,9 @@ fn main() {
         Event::MainEventsCleared => {
             let frame_time = Instant::now();
 
-            camera.move_camera(delta_time, &inputs);
+            if !inputs.active.is_empty() {
+                camera.move_camera(delta_time, &inputs);
+            }
 
             let uniform = shaders::vs::Data {
                 camera: (camera.projection * camera.view).to_cols_array_2d(),

@@ -20,7 +20,7 @@ pub mod vs {
             const float AMBIENT = 0.02;
 
             void main() {
-                gl_Position = uniforms.camera * vec4(position, 1.0);
+                gl_Position = uniforms.camera * uniforms.modelMatrix * vec4(position, 1.0);
 
                 vec3 normalWorldSpace = normalize(mat3(uniforms.modelMatrix) * normal);
 
