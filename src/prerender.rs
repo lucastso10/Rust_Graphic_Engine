@@ -21,11 +21,12 @@ use vulkano::{
     shader::ShaderModule,
 };
 
-use crate::{device::GPU, shaders, MyVertex};
+use crate::{device::GPU, object::Object, shaders, MyVertex};
 
 pub struct PreRenderer {
     //memory_allocator: Arc<StandardMemoryAllocator>,
     pub vertex_buffer: Subbuffer<[MyVertex]>,
+    pub indices_buffer: Subbuffer<[u32]>,
     //vs: Arc<ShaderModule>,
     //fs: Arc<ShaderModule>,
     pub pipeline: Arc<GraphicsPipeline>,
@@ -35,7 +36,7 @@ pub struct PreRenderer {
 impl PreRenderer {
     pub fn new(
         device: &GPU,
-        objects: Vec<MyVertex>,
+        objects: &Object,
         render_pass: &Arc<RenderPass>,
         viewport: &Viewport,
     ) -> Self {
@@ -50,7 +51,22 @@ impl PreRenderer {
                     | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
                 ..Default::default()
             },
-            objects,
+            objects.model.vertices.clone(),
+        )
+        .unwrap();
+        
+        let indices_buffer = Buffer::from_iter(
+            device.memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: BufferUsage::INDEX_BUFFER,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE
+                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+                ..Default::default()
+            },
+            objects.model.indices.clone(),
         )
         .unwrap();
 
@@ -67,6 +83,7 @@ impl PreRenderer {
         Self {
             //memory_allocator,
             vertex_buffer,
+            indices_buffer,
             //vs,
             //fs,
             pipeline,

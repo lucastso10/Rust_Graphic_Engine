@@ -1,15 +1,13 @@
 mod camera;
 mod device;
 mod keyboard;
-mod mover;
 mod object;
 mod prerender;
 mod renderer;
 mod shaders;
 
-use core::time;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use glam::Vec3;
 use vulkano::buffer::BufferContents;
@@ -37,14 +35,18 @@ use winit::window::WindowBuilder;
 
 // event loop
 
-#[derive(BufferContents, Vertex)]
+#[derive(BufferContents, Vertex, Clone, PartialEq)]
 #[repr(C)]
 pub struct MyVertex {
     #[format(R32G32B32_SFLOAT)]
     position: [f32; 3],
-    #[name("inColor")]
+    #[name("color")]
     #[format(R32G32B32_SFLOAT)]
     color: [f32; 3],
+    #[format(R32G32B32_SFLOAT)]
+    normal: [f32; 3],
+    #[format(R32G32_SFLOAT)]
+    texcoord: [f32; 2],
 }
 
 fn main() {
@@ -88,190 +90,28 @@ fn main() {
     // Renderer { swapchain, RenderPass, Framebuffers, viewport, command buffers}
     let renderer = renderer::Renderer::new(&device, surface.clone(), window.inner_size());
 
-    let cubo_vertexes = vec![
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.9, 0.9, 0.9],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.9, 0.6, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.8, 0.1, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [0.5, -0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [0.5, 0.5, 0.5],
-            color: [0.1, 0.1, 0.8],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, 0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [-0.5, -0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, -0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-        MyVertex {
-            position: [0.5, 0.5, -0.5],
-            color: [0.1, 0.8, 0.1],
-        },
-    ];
+    let mut object = object::Object::new("obj/vase.obj");
 
-    let mut object = object::Object::new(
-        Vec3::from_array([0.0, 0.0, 2.5]),
-        Vec3::from_array([0.5, 0.5, 0.5]),
-        Vec3::from_array([0.0, 0.0, 0.0]),
-    );
+    object.translation = Vec3::from_array([0.0, 0.5, 0.0]);
+    object.scale = Vec3::from_array([1.5, 1.5, 1.5]);
 
     let prerender = prerender::PreRenderer::new(
         &device,
-        cubo_vertexes,
+        &object,
         &renderer.render_pass,
         &renderer.viewport,
     );
 
-    // declara a pipeline final do programa
-    //
-    // pipeline
     let frames_in_flight = usize::try_from(renderer.swapchain.image_count()).unwrap();
     let mut fences: Vec<Option<Arc<FenceSignalFuture<_>>>> = vec![None; frames_in_flight];
     let mut previous_fence_i = 0;
 
     let mut inputs = keyboard::Keyboard::default();
-
-    let mut camera = camera::Camera::default();
-    let mut camera_object = object::Object::default();
-    let camera_controller = mover::Mover::default();
-
-    // 0.87266462599716 = 50 graus
-    camera.perspective_view(0.87266462599716, renderer.get_aspect_ratio(), 0.1, 100.0);
-
-    //camera.orthographic_view(1.0, -1.0, -1.0, 1.0, -1.0, 1.0);
-
-    //camera.setViewDirection(Vec3::from_array([0.0, 0.0, 0.0]), Vec3::from_array([0.5, 0.0, 1.0]), Vec3::from_array([0.0, -1.0, 0.0]));
-    camera.set_view_target(
-        Vec3::from_array([-1.0, -2.0, -20.0]),
-        Vec3::from_array([0.0, 0.0, 2.5]),
-        Vec3::from_array([0.0, -1.0, 0.0]),
-    );
+    let mut camera = camera::Camera::new(
+            renderer.get_aspect_ratio(),
+            Vec3::from_array([0.0, 0.0, -3.0]),
+            Vec3::from_array([0.0, 0.0, 0.0])
+        );
 
     let mut delta_time = 0.0;
     event_loop.run(move |event, _, control_flow| match event {
@@ -281,24 +121,23 @@ fn main() {
             _ => (),
         },
         Event::MainEventsCleared => {
-            let frame_time = std::time::Instant::now();
+            let frame_time = Instant::now();
 
-            camera_controller.movement(delta_time, &mut camera_object, &inputs);
-
-            camera.set_view_yxz(camera_object.translation, camera_object.rotation);
+            if !inputs.active.is_empty() {
+                camera.move_camera(delta_time, &inputs);
+            }
 
             let uniform = shaders::vs::Data {
-                transform: object.calculate_matrix(),
                 camera: (camera.projection * camera.view).to_cols_array_2d(),
+                modelMatrix: object.calculate_matrix(),
             };
 
             let command_buffer = renderer.create_command_buffer(
                 &device.graphics_queue,
-                &prerender.pipeline,
-                &prerender.layout,
-                &prerender.vertex_buffer,
+                &prerender,
                 &uniform,
             );
+
             // aqui começamos a renderizar a próxima imagem
             let (image_i, _suboptimal, acquire_future) =
                 match swapchain::acquire_next_image(renderer.swapchain.clone(), None)

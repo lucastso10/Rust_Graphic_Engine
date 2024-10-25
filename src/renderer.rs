@@ -1,5 +1,5 @@
+use crate::prerender::PreRenderer;
 use crate::shaders;
-use crate::MyVertex;
 use std::sync::Arc;
 
 use vulkano::buffer::allocator::SubbufferAllocator;
@@ -19,7 +19,7 @@ use vulkano::{
     format::Format,
     image::{view::ImageView, Image, ImageCreateInfo, ImageType, ImageUsage},
     memory::allocator::{AllocationCreateInfo, StandardMemoryAllocator},
-    pipeline::{graphics::viewport::Viewport, GraphicsPipeline, PipelineLayout},
+    pipeline::graphics::viewport::Viewport,
     render_pass::{Framebuffer, FramebufferCreateInfo, RenderPass},
     swapchain::{ColorSpace, Surface, SurfaceCapabilities, Swapchain, SwapchainCreateInfo},
 };
@@ -213,9 +213,7 @@ impl Renderer {
     pub fn create_command_buffer(
         &self,
         queue: &Arc<Queue>,
-        pipeline: &Arc<GraphicsPipeline>,
-        pipeline_layout: &Arc<PipelineLayout>,
-        vertex_buffer: &Subbuffer<[MyVertex]>,
+        prerender: &PreRenderer,
         uniforms: &shaders::vs::Data,
     ) -> Vec<Arc<PrimaryAutoCommandBuffer>> {
         self.framebuffers
@@ -226,7 +224,7 @@ impl Renderer {
                 *buffer.write().unwrap() = *uniforms;
 
                 let descriptor_set = {
-                    let descriptor_set_layouts = pipeline_layout.set_layouts();
+                    let descriptor_set_layouts = prerender.layout.set_layouts();
                     let descriptor_set_layout = descriptor_set_layouts.get(0).unwrap();
                     PersistentDescriptorSet::new(
                         &self.descriptor_set_allocator,
@@ -259,18 +257,20 @@ impl Renderer {
                         },
                     )
                     .unwrap()
-                    .bind_pipeline_graphics(pipeline.clone())
+                    .bind_pipeline_graphics(prerender.pipeline.clone())
                     .unwrap()
-                    .bind_vertex_buffers(0, vertex_buffer.clone())
+                    .bind_vertex_buffers(0, prerender.vertex_buffer.clone())
+                    .unwrap()
+                    .bind_index_buffer(prerender.indices_buffer.clone())
                     .unwrap()
                     .bind_descriptor_sets(
                         vulkano::pipeline::PipelineBindPoint::Graphics,
-                        pipeline_layout.clone(),
+                        prerender.layout.clone(),
                         0,
                         descriptor_set.clone(),
                     )
                     .unwrap()
-                    .draw(vertex_buffer.len() as u32, 1, 0, 0)
+                    .draw_indexed(prerender.indices_buffer.len() as u32, 1, 0, 0, 0)
                     .unwrap()
                     .end_render_pass(Default::default())
                     .unwrap();

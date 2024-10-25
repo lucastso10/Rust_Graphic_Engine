@@ -1,30 +1,50 @@
-//use crate::MyVertex;
-
 use glam::f32::{Mat4, Vec3};
+
+use crate::MyVertex;
 
 pub struct Object {
     //pub model: Vec<MyVertex>,
     pub translation: Vec3,
     pub scale: Vec3,
     pub rotation: Vec3,
-}
-
-impl Default for Object {
-    fn default() -> Self {
-        Object {
-            translation: Vec3::ZERO,
-            scale: Vec3::ONE,
-            rotation: Vec3::ZERO,
-        }
-    }
+    pub model: Model,
 }
 
 impl Object {
-    pub fn new(translation: Vec3, scale: Vec3, rotation: Vec3) -> Self {
+    pub fn new(file_name: &str) -> Object {
+        let (models, _materials) = tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Failed to load obj!");
+
+        // suporte para apenas um modelo no arquivo
+        let mesh = &models[0].mesh;
+
+        let mut vertices: Vec<MyVertex> = vec![];
+        let mut indices: Vec<u32> = vec![];
+        for i in 0..mesh.indices.len() { 
+            let index = mesh.indices[i] as usize;
+            let vertex = MyVertex {
+                position: [mesh.positions[index * 3], mesh.positions[index * 3 + 1], mesh.positions[index * 3 + 2]],
+                color: [0.5, 0.5, 0.5],
+                normal: [mesh.normals[index * 3], mesh.normals[index * 3 + 1], mesh.normals[index * 3 + 2]],
+                texcoord: [mesh.texcoords[index * 2], mesh.texcoords[index * 2 + 1]],
+            };
+
+            if vertices.contains(&vertex) {
+                indices.push(vertices.iter().position(|r| *r == vertex).unwrap().try_into().unwrap());
+            } else {
+                vertices.push(vertex.clone());
+                indices.push(vertices.iter().position(|r| *r == vertex).unwrap().try_into().unwrap());
+            }
+        }
+
+        let model = Model {
+            vertices,
+            indices,
+        };
         Self {
-            translation,
-            scale,
-            rotation,
+            translation: Vec3::ZERO,
+            scale: Vec3::ONE,
+            rotation: Vec3::ZERO,
+            model,
         }
     }
 
@@ -54,5 +74,19 @@ impl Object {
             1.0,
         ])
         .to_cols_array_2d()
+    }
+}
+
+pub struct Model {
+    pub vertices: Vec<MyVertex>,
+    pub indices: Vec<u32>,
+}
+
+impl Clone for Model {
+    fn clone(&self) -> Self {
+        Model {
+            vertices: self.vertices.clone(),
+            indices: self.indices.clone(),
+        }
     }
 }
